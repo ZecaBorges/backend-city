@@ -100,6 +100,8 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
 
   function selectLandmark(id: LandmarkId) {
     setSelectedId(id);
+    travelSequenceRef.current += 1;
+    setFastTravelRequest({ landmarkId: id, sequence: travelSequenceRef.current });
     if (mode === 'menu') setMode('explore');
   }
 

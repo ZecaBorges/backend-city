@@ -1491,6 +1491,10 @@ button {
   text-transform: uppercase;
 }
 
+.canvas-shell {
+  touch-action: manipulation;
+}
+
 .canvas-shell canvas {
   width: 100% !important;
   height: 100% !important;

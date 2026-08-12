@@ -50,6 +50,7 @@ export default function CityCanvas({ selectedId, mode, shouldFocus, fastTravelRe
           <CityScene selectedId={selectedId} mode={mode} fastTravelRequest={fastTravelRequest} onSelect={onSelect} controlElementRef={shellRef} />
         </Canvas>
         {mode === 'explore' && <div className="canvas-help" aria-hidden="true"><span><kbd>WASD</kbd> mover</span><span><kbd>E</kbd> inspecionar</span><span><kbd>CLIQUE</kbd> selecionar</span></div>}
+        {mode === 'explore' && <div className="touch-hint" aria-hidden="true">TOQUE EM UM DISTRITO · OU USE FAST_TRAVEL</div>}
       </div>
     </WebGLErrorBoundary>
   );
