@@ -1,0 +1,36 @@
+---
+import { experiences } from '../data/resume';
+---
+
+<section id="experiencia" class="section-shell content-section" aria-labelledby="experience-title">
+  <header class="section-heading">
+    <p class="eyebrow">/ TRAJETÓRIA</p>
+    <h2 id="experience-title">Experiência em produção</h2>
+    <p>Produtos reais, integrações críticas e evolução contínua entre saúde, fintech e benefícios.</p>
+  </header>
+
+  <div class="timeline">
+    {experiences.map((experience, index) => (
+      <article class="experience-card" id={`experiencia-${experience.id}`} style={`--accent: ${experience.color}`}>
+        <div class="timeline-marker" aria-hidden="true"><span>{String(index + 1).padStart(2, '0')}</span></div>
+        <div class="experience-main">
+          <div class="experience-header">
+            <div>
+              <p class="experience-context">{experience.context ?? experience.district}</p>
+              <h3>{experience.company}</h3>
+              <p class="experience-role">{experience.role}</p>
+            </div>
+            <time>{experience.period}</time>
+          </div>
+          <p class="experience-summary">{experience.summary}</p>
+          <ul class="achievement-list">
+            {experience.achievements.map((achievement) => <li>{achievement}</li>)}
+          </ul>
+          <ul class="tag-list" aria-label={`Tecnologias usadas na ${experience.company}`}>
+            {experience.technologies.map((technology) => <li>{technology}</li>)}
+          </ul>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>

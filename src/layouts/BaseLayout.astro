@@ -1,0 +1,59 @@
+---
+import '../styles/global.css';
+import { profile } from '../data/resume';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = `${profile.name} | ${profile.title}`,
+  description = 'Currículo online de José Emanuel Borges, Senior Backend Engineer especializado em Java, Kotlin, Spring Boot e sistemas distribuídos.',
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: profile.name,
+  jobTitle: profile.title,
+  email: profile.email,
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Petrolina',
+    addressRegion: 'PE',
+    addressCountry: 'BR',
+  },
+  sameAs: [profile.linkedin, profile.github],
+  knowsAbout: ['Java', 'Kotlin', 'Spring Boot', 'Sistemas Distribuídos', 'DDD'],
+};
+const serializedStructuredData = JSON.stringify(structuredData).replaceAll('<', '\\u003c');
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#070b17" />
+    <meta name="color-scheme" content="dark" />
+    <meta property="og:type" content="profile" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href={`${basePath}/favicon.svg`} type="image/svg+xml" />
+    <title>{title}</title>
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <script is:inline type="application/ld+json" set:html={serializedStructuredData} />
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <slot />
+  </body>
+</html>

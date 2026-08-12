@@ -1,0 +1,40 @@
+---
+import { certifications, education, skillGroups } from '../data/resume';
+---
+
+<section id="competencias" class="section-shell content-section" aria-labelledby="skills-title">
+  <header class="section-heading">
+    <p class="eyebrow">/ INFRAESTRUTURA</p>
+    <h2 id="skills-title">Stack que mantém a cidade online</h2>
+  </header>
+
+  <div class="skills-layout">
+    <div class="skill-grid">
+      {skillGroups.map((group, index) => (
+        <article class="skill-card">
+          <span>NODE_{String(index + 1).padStart(2, '0')}</span>
+          <h3>{group.title}</h3>
+          <ul>
+            {group.skills.map((skill) => <li>{skill}</li>)}
+          </ul>
+        </article>
+      ))}
+    </div>
+
+    <aside class="education-panel">
+      <p class="panel-label">EDUCATION_LOG</p>
+      <h3>Formação</h3>
+      <ul>
+        {education.map((item) => <li>{item}</li>)}
+      </ul>
+      <h3>Formação complementar</h3>
+      <ul>
+        {certifications.map((item) => <li>{item}</li>)}
+      </ul>
+      <div class="language-status">
+        <span>PT-BR <strong>NATIVO</strong></span>
+        <span>EN <strong>PROFISSIONAL</strong></span>
+      </div>
+    </aside>
+  </div>
+</section>

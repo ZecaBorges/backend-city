@@ -1,0 +1,70 @@
+---
+import { metrics, profile } from '../data/resume';
+---
+
+<section id="impacto" class="hero resume-hero section-shell" aria-labelledby="resume-hero-title">
+  <div class="hero-copy">
+    <p class="eyebrow"><span class="status-dot"></span> Disponível para desafios backend</p>
+    <h2 id="resume-hero-title" class="resume-hero-title">
+      Sistemas complexos.<br />
+      <span>Resultados mensuráveis.</span>
+    </h2>
+    <p class="hero-role">{profile.title} · Java · Kotlin · Spring Boot</p>
+    <p class="hero-summary">{profile.summary}</p>
+
+    <div class="hero-actions">
+      <a class="button button-primary" href="#experiencia">Ver trajetória</a>
+      <a class="button button-secondary" href="#inicio">Voltar ao atlas 3D</a>
+    </div>
+
+    <ul class="hero-links" aria-label="Links profissionais">
+      <li><a href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn ↗</a></li>
+      <li><a href={profile.github} target="_blank" rel="noreferrer">GitHub ↗</a></li>
+      <li><a href={profile.whatsapp.url} target="_blank" rel="noopener noreferrer">WhatsApp ↗</a></li>
+      <li><a href={`mailto:${profile.email}`}>E-mail</a></li>
+      <li><a class="print-link" href="#imprimir" data-print>Imprimir / PDF</a></li>
+    </ul>
+  </div>
+
+  <aside class="hero-terminal" aria-label="Resumo técnico">
+    <div class="terminal-bar">
+      <span></span><span></span><span></span>
+      <code>career://backend-city</code>
+    </div>
+    <div class="terminal-body">
+      <p><span>$</span> profile --summary</p>
+      <dl>
+        <div><dt>role</dt><dd>Senior Backend Engineer</dd></div>
+        <div><dt>runtime</dt><dd>7+ anos</dd></div>
+        <div><dt>location</dt><dd>{profile.location}</dd></div>
+        <div><dt>focus</dt><dd>distributed_systems</dd></div>
+        <div><dt>status</dt><dd class="terminal-success">operational</dd></div>
+      </dl>
+      <div class="terminal-map" aria-hidden="true">
+        <span class="node node-health">HEALTH</span>
+        <i></i>
+        <span class="node node-core">CORE</span>
+        <i></i>
+        <span class="node node-finance">FINANCE</span>
+      </div>
+    </div>
+  </aside>
+
+  <div id="impacto" class="metrics-grid" aria-label="Resultados em destaque">
+    {metrics.map((metric, index) => (
+      <article class="metric-card">
+        <span class="metric-index" aria-hidden="true">0{index + 1}</span>
+        <strong>{metric.value}</strong>
+        <h2>{metric.label}</h2>
+        <p>{metric.detail}</p>
+      </article>
+    ))}
+  </div>
+</section>
+
+<script>
+  document.querySelector('[data-print]')?.addEventListener('click', (event) => {
+    event.preventDefault();
+    window.print();
+  });
+</script>

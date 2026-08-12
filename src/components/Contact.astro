@@ -1,0 +1,33 @@
+---
+import { profile } from '../data/resume';
+---
+
+<section id="contato" class="contact-section section-shell" aria-labelledby="contact-title">
+  <div class="contact-copy">
+    <p class="eyebrow">/ CANAL ABERTO</p>
+    <h2 id="contact-title">Vamos conversar?</h2>
+    <p>Escolha o canal mais prático. Para uma resposta rápida, fale comigo diretamente pelo WhatsApp.</p>
+  </div>
+  <address class="contact-channels">
+    <a class="contact-channel contact-channel-primary" href={profile.whatsapp.url} target="_blank" rel="noopener noreferrer" aria-label={`Chamar no WhatsApp: ${profile.whatsapp.display}`}>
+      <span>Resposta rápida</span>
+      <strong>WhatsApp</strong>
+      <small>{profile.whatsapp.display} ↗</small>
+    </a>
+    <a class="contact-channel" href={`mailto:${profile.email}`}>
+      <span>Mensagem detalhada</span>
+      <strong>E-mail</strong>
+      <small>{profile.email}</small>
+    </a>
+    <a class="contact-channel" href={profile.linkedin} target="_blank" rel="noopener noreferrer">
+      <span>Perfil profissional</span>
+      <strong>LinkedIn</strong>
+      <small>{profile.linkedin.replace('https://www.', '')} ↗</small>
+    </a>
+  </address>
+</section>
+
+<footer class="site-footer section-shell">
+  <p>© {new Date().getFullYear()} {profile.name}</p>
+  <p>{profile.location} · Construído com Astro, React e WebGL</p>
+</footer>

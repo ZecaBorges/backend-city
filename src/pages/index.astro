@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import ExperienceTimeline from '../components/ExperienceTimeline.astro';
+import Skills from '../components/Skills.astro';
+import Contact from '../components/Contact.astro';
+import CityExperience from '../components/city/CityExperience';
+import { experiences } from '../data/resume';
+---
+
+<BaseLayout>
+  <Header />
+  <main id="conteudo">
+    <CityExperience client:load experiences={experiences} />
+    <div id="curriculo" class="resume-archive">
+      <Hero />
+      <ExperienceTimeline />
+      <Skills />
+      <Contact />
+    </div>
+  </main>
+</BaseLayout>
