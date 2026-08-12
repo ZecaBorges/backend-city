@@ -42,3 +42,12 @@ npm run test:e2e
 2. Empurre o código para o branch `main`.
 3. O workflow `.github/workflows/deploy.yml` gera o site estático e publica no GitHub Pages.
 4. O endereço final fica em `https://<seu-usuario>.github.io/backend-city/`.
+
+## Documentação para IA
+
+O diretório `docs/ai/` contém documentação completa para assists de IA:
+
+- [README](./docs/ai/README.md) — Visão geral e regras críticas
+- [Arquitetura](./docs/ai/ARCHITECTURE.md) — Estrutura, fluxo de dados, componentes 3D
+- [Convenções](./docs/ai/CONVENTIONS.md) — Padrões de código e regras de negócio
+- [Arquivos](./docs/ai/FILES.md) — Mapa de todos os arquivos importantes
