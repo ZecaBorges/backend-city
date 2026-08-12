@@ -40,6 +40,8 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
   const [tourElapsed, setTourElapsed] = useState(0);
   const [tourPaused, setTourPaused] = useState(false);
   const [fastTravelRequest, setFastTravelRequest] = useState<FastTravelRequest | null>(null);
+  const [dossierExpanded, setDossierExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const tourStartRef = useRef(0);
   const travelSequenceRef = useRef(0);
   const tour = getTourStopAt(tourElapsed);
@@ -52,6 +54,14 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
   useEffect(() => {
     if (supportsWebGL()) setEnabled(true);
     else setWebglUnavailable(true);
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 700px)');
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
   }, []);
 
   useEffect(() => {
@@ -100,6 +110,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
 
   function selectLandmark(id: LandmarkId) {
     setSelectedId(id);
+    setDossierExpanded(false);
     travelSequenceRef.current += 1;
     setFastTravelRequest({ landmarkId: id, sequence: travelSequenceRef.current });
     if (mode === 'menu') setMode('explore');
@@ -107,6 +118,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
 
   function fastTravelToLandmark(id: LandmarkId) {
     setSelectedId(id);
+    setDossierExpanded(false);
     travelSequenceRef.current += 1;
     setFastTravelRequest({ landmarkId: id, sequence: travelSequenceRef.current });
   }
@@ -237,7 +249,13 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
       )}
 
       {mode === 'explore' && (
-        <LandmarkDossier landmarkId={selectedId} experience={selectedExperience} />
+        <LandmarkDossier
+          landmarkId={selectedId}
+          experience={selectedExperience}
+          expanded={isMobile ? dossierExpanded : true}
+          mobile={isMobile}
+          onToggle={() => setDossierExpanded((expanded) => !expanded)}
+        />
       )}
 
       {tutorialOpen && <CityTutorial onClose={closeTutorial} />}
@@ -251,22 +269,28 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
   );
 }
 
-function LandmarkDossier({ landmarkId, experience }: { landmarkId: LandmarkId; experience?: Experience }) {
+function LandmarkDossier({ landmarkId, experience, expanded, mobile, onToggle }: { landmarkId: LandmarkId; experience?: Experience; expanded: boolean; mobile: boolean; onToggle: () => void }) {
   const landmark = getLandmark(landmarkId);
   return (
-    <article className="landmark-dossier" style={{ '--detail-color': landmark.color } as React.CSSProperties} aria-live="polite">
+    <article
+      className={`landmark-dossier ${!expanded ? 'is-collapsed' : 'is-expanded'}`}
+      style={{ '--detail-color': landmark.color } as React.CSSProperties}
+      aria-live="polite"
+    >
       <p className="dossier-code">DISTRICT::{landmark.district.toUpperCase().replaceAll(' ', '_')}</p>
-      <div className="dossier-heading"><div><span>{landmark.status}</span><h2>{landmark.label}</h2></div>{experience && <time>{experience.period}</time>}</div>
-      <p>{landmark.summary}</p>
-      <ul className="dossier-signals">{landmark.signals.map((signal) => <li key={signal}>{signal}</li>)}</ul>
-      {experience ? (
-        <ul className="dossier-evidence">{experience.achievements.slice(0, 2).map((item) => <li key={item}>{item}</li>)}</ul>
-      ) : landmarkId === 'engineering-core' ? (
-        <ul className="dossier-evidence"><li>Java · Kotlin · Spring Boot</li><li>DDD · Hexagonal · Event-Driven</li><li>Oracle · Kafka · Docker · Kubernetes</li></ul>
-      ) : (
-        <ul className="dossier-evidence"><li>Model Gateway e Retrieval Plane</li><li>Evaluation Arena e Guardrail Station</li><li>Ativação somente com cases e métricas verificáveis</li></ul>
-      )}
-      {experience && <a href={`#experiencia-${experience.id}`}>Abrir evidência completa ↓</a>}
+      <div className="dossier-heading"><div><span>{landmark.status}</span><h2>{landmark.label}</h2></div>{experience && <time>{experience.period}</time>}{mobile && <button className="dossier-toggle" type="button" onClick={onToggle} aria-expanded={expanded} aria-controls="landmark-dossier-content" aria-label={expanded ? `Fechar detalhes de ${landmark.label}` : `Expandir detalhes de ${landmark.label}`}><span aria-hidden="true">{expanded ? '×' : '⌃'}</span></button>}</div>
+      <div id="landmark-dossier-content">
+        <p>{landmark.summary}</p>
+        <ul className="dossier-signals">{landmark.signals.map((signal) => <li key={signal}>{signal}</li>)}</ul>
+        {experience ? (
+          <ul className="dossier-evidence">{experience.achievements.slice(0, 2).map((item) => <li key={item}>{item}</li>)}</ul>
+        ) : landmarkId === 'engineering-core' ? (
+          <ul className="dossier-evidence"><li>Java · Kotlin · Spring Boot</li><li>DDD · Hexagonal · Event-Driven</li><li>Oracle · Kafka · Docker · Kubernetes</li></ul>
+        ) : (
+          <ul className="dossier-evidence"><li>Model Gateway e Retrieval Plane</li><li>Evaluation Arena e Guardrail Station</li><li>Ativação somente com cases e métricas verificáveis</li></ul>
+        )}
+        {experience && <a href={`#experiencia-${experience.id}`}>Abrir evidência completa ↓</a>}
+      </div>
     </article>
   );
 }

@@ -14,6 +14,22 @@ function mockWebGL(available: boolean) {
   });
 }
 
+function stubMatchMedia(active: boolean) {
+  const listeners: Array<() => void> = [];
+  const media = {
+    matches: active,
+    media: '(max-width: 700px)',
+    onchange: null,
+    addEventListener: (_type: string, listener: () => void) => { listeners.push(listener); },
+    removeEventListener: (_type: string, listener: () => void) => { listeners.splice(listeners.indexOf(listener), 1); },
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    dispatchEvent: () => false,
+  };
+  vi.stubGlobal('matchMedia', () => media);
+  return listeners;
+}
+
 describe('CityExperience', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -86,6 +102,45 @@ describe('CityExperience', () => {
     await waitFor(() => expect(screen.getByText(/WebGL indisponível/i)).toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Tour de 90 segundos' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /currículo textual/i })).toBeInTheDocument();
+    contextSpy.mockRestore();
+  });
+
+  it('collapses the dossier to a mini card on mobile and expands on demand', () => {
+    const contextSpy = mockWebGL(false);
+    stubMatchMedia(true);
+    render(<CityExperience experiences={experiences} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Explorar livremente' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Começar a explorar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'EVENTS' }));
+
+    const dossier = screen.getByRole('article');
+    expect(dossier).toHaveClass('is-collapsed');
+    const expand = screen.getByRole('button', { name: 'Expandir detalhes de PLUXXE' });
+    expect(expand).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(expand);
+    expect(dossier).toHaveClass('is-expanded');
+    expect(screen.getByText(/Plataforma fiscal orientada a eventos/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fechar detalhes de PLUXXE' })).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar detalhes de PLUXXE' }));
+    expect(dossier).toHaveClass('is-collapsed');
+    contextSpy.mockRestore();
+  });
+
+  it('keeps the full dossier without toggle button on desktop', () => {
+    const contextSpy = mockWebGL(false);
+    stubMatchMedia(false);
+    render(<CityExperience experiences={experiences} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Explorar livremente' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Começar a explorar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'EVENTS' }));
+
+    const dossier = screen.getByRole('article');
+    expect(dossier).toHaveClass('is-expanded');
+    expect(screen.queryByRole('button', { name: /Expandir detalhes|Fechar detalhes/ })).not.toBeInTheDocument();
     contextSpy.mockRestore();
   });
 

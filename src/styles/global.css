@@ -1807,6 +1807,42 @@ button {
     max-height: 42svh;
     padding: 1rem;
   }
+  .landmark-dossier.is-collapsed {
+    bottom: 4.6rem;
+    max-height: none;
+    padding: 0.7rem 0.9rem;
+    overflow: hidden;
+  }
+  .landmark-dossier.is-collapsed .dossier-code {
+    margin-bottom: 0.4rem;
+  }
+  .landmark-dossier.is-collapsed .dossier-heading {
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+  }
+  .landmark-dossier.is-collapsed #landmark-dossier-content {
+    display: none;
+  }
+  .landmark-dossier.is-expanded {
+    max-height: 36svh;
+  }
+  .dossier-toggle {
+    flex: 0 0 auto;
+    align-self: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--detail-color), transparent 55%);
+    background: rgba(3, 8, 18, 0.72);
+    color: var(--detail-color);
+    cursor: pointer;
+    font: 0.95rem 'IBM Plex Mono', monospace;
+    line-height: 1;
+  }
+  .dossier-toggle:active {
+    background: rgba(3, 8, 18, 0.95);
+  }
   .world-fast-travel button,
   .tour-controls button {
     min-height: 44px;

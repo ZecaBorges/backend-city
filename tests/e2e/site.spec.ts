@@ -36,7 +36,7 @@ test('runs the guided tour and exposes deterministic controls', async ({ page })
   await expect(page.locator('.landmark-dossier').getByRole('heading', { name: 'CASSEMS' })).toBeVisible();
 });
 
-test('shows tutorial once and lets visitors inspect future AI blueprint', async ({ page }) => {
+test('shows tutorial once and lets visitors inspect future AI blueprint', async ({ page, isMobile }) => {
   await disableWebGL(page);
   await page.goto('./');
   await page.evaluate(() => localStorage.clear());
@@ -48,6 +48,7 @@ test('shows tutorial once and lets visitors inspect future AI blueprint', async 
   await expect(page.getByRole('dialog')).toBeHidden();
   await page.getByRole('button', { name: 'AI R&D' }).click();
   await expect(page.getByRole('heading', { name: 'AI R&D ZONE' })).toBeVisible();
+  if (isMobile) await page.getByRole('button', { name: /Expandir detalhes/i }).click();
   await expect(page.getByText(/Ativação somente com cases/i)).toBeVisible();
 
   await page.getByRole('button', { name: 'Visão geral' }).click();
@@ -122,6 +123,10 @@ test('remains usable and free of horizontal overflow on mobile', async ({ page, 
   }
   await page.getByRole('button', { name: 'CORE' }).click();
   await expect(page.getByRole('heading', { name: 'ENGINEERING CORE' })).toBeVisible();
+  const expandDossier = page.getByRole('button', { name: /Expandir detalhes/i });
+  await expect(expandDossier).toBeVisible();
+  await expandDossier.click();
+  await expect(page.getByRole('button', { name: /Fechar detalhes/i })).toBeVisible();
   const travelButtons = page.locator('.world-fast-travel > div');
   await expect(travelButtons).toHaveCSS('overflow-x', 'auto');
   const layout = await page.evaluate(() => ({
