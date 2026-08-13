@@ -48,7 +48,7 @@ export default function CityScene({ selectedId, mode, fastTravelRequest, onSelec
   return (
     <>
       <color attach="background" args={['#030611']} />
-      <fog attach="fog" args={['#030611', 48, 110]} />
+      <fog attach="fog" args={['#030611', 30, 70]} />
       <ambientLight intensity={1.15} />
       <hemisphereLight args={['#6fd9ff', '#0b1020', 1.2]} />
       <directionalLight position={[10, 24, 12]} intensity={2.3} color="#d9f4ff" />
@@ -79,14 +79,60 @@ export default function CityScene({ selectedId, mode, fastTravelRequest, onSelec
   );
 }
 
+function makeFloorTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const context = canvas.getContext('2d');
+  if (!context) return new THREE.CanvasTexture(canvas);
+  context.fillStyle = '#10233a';
+  context.fillRect(0, 0, 512, 512);
+  context.strokeStyle = '#0b1826';
+  context.lineWidth = 3;
+  const panel = 64;
+  for (let x = 0; x <= 512; x += panel) {
+    context.beginPath();
+    context.moveTo(x + 0.5, 0);
+    context.lineTo(x + 0.5, 512);
+    context.stroke();
+  }
+  for (let y = 0; y <= 512; y += panel) {
+    context.beginPath();
+    context.moveTo(0, y + 0.5);
+    context.lineTo(512, y + 0.5);
+    context.stroke();
+  }
+  for (let index = 0; index < 96; index += 1) {
+    context.fillStyle = `rgba(${8 + Math.random() * 40}, ${18 + Math.random() * 42}, ${28 + Math.random() * 56}, 0.35)`;
+    context.fillRect(Math.random() * 512, Math.random() * 512, 2 + Math.random() * 5, 2 + Math.random() * 5);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(17, 14.5);
+  texture.anisotropy = 4;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+let cachedFloorTexture: THREE.CanvasTexture | null = null;
+
+function getFloorTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!cachedFloorTexture) cachedFloorTexture = makeFloorTexture();
+  return cachedFloorTexture;
+}
+
 function Environment({ reducedMotion }: { reducedMotion: boolean }) {
+  const floorTexture = getFloorTexture();
   return (
     <>
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.12, 1]}>
         <planeGeometry args={[68, 58]} />
-        <meshStandardMaterial color="#050a14" roughness={0.96} />
+        <meshStandardMaterial color={floorTexture ? '#ffffff' : '#0d1d31'} map={floorTexture ?? undefined} roughness={0.96} />
       </mesh>
-      <Grid position={[0, 0, 1]} args={[68, 58]} cellSize={1} cellThickness={0.28} cellColor="#112a3f" sectionSize={5} sectionThickness={0.72} sectionColor="#15556d" fadeDistance={68} infiniteGrid={false} />
+      <Grid position={[0, 0, 1]} args={[68, 58]} cellSize={1} cellThickness={0.35} cellColor="#1d4f6e" sectionSize={5} sectionThickness={0.85} sectionColor="#1f7394" fadeDistance={68} infiniteGrid={false} />
+      <Line points={[[-34, 0.02, -28], [34, 0.02, -28], [34, 0.02, 30], [-34, 0.02, 30], [-34, 0.02, -28]]} color="#2b7a96" lineWidth={1.4} transparent opacity={0.7} />
       {!reducedMotion && <Sparkles count={48} scale={[60, 10, 50]} position={[0, 5, 1]} size={1.2} speed={0.1} opacity={0.2} color="#73eaff" />}
     </>
   );
@@ -117,7 +163,24 @@ function Infrastructure({ selectedId, reducedMotion }: { selectedId: LandmarkId;
 }
 
 function Road({ position, size, color }: { position: [number, number, number]; size: [number, number, number]; color: string }) {
-  return <mesh position={position}><boxGeometry args={size} /><meshStandardMaterial color={color} roughness={0.82} metalness={0.12} /></mesh>;
+  const halfX = size[0] / 2;
+  const halfZ = size[2] / 2;
+  const longAlongX = size[0] >= size[2];
+  const y = 0.077;
+  const gap = 0.012;
+  const first: [number, number, number][] = longAlongX
+    ? [[-halfX - gap, y, -halfZ - gap], [halfX + gap, y, -halfZ - gap]]
+    : [[-halfX - gap, y, -halfZ - gap], [-halfX - gap, y, halfZ + gap]];
+  const second: [number, number, number][] = longAlongX
+    ? [[-halfX - gap, y, halfZ + gap], [halfX + gap, y, halfZ + gap]]
+    : [[halfX + gap, y, -halfZ - gap], [halfX + gap, y, halfZ + gap]];
+  return (
+    <group position={position}>
+      <mesh><boxGeometry args={size} /><meshStandardMaterial color={color} roughness={0.82} metalness={0.12} /></mesh>
+      <Line points={first} color="#256a8a" lineWidth={1} transparent opacity={0.5} />
+      <Line points={second} color="#256a8a" lineWidth={1} transparent opacity={0.5} />
+    </group>
+  );
 }
 
 function DataPackets() {
