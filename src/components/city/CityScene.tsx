@@ -116,7 +116,7 @@ function Infrastructure({ selectedId, reducedMotion }: { selectedId: LandmarkId;
 }
 
 function Road({ position, size, color }: { position: [number, number, number]; size: [number, number, number]; color: string }) {
-  return <mesh position={position}><boxGeometry args={size} /><meshStandardMaterial color={color} roughness={0.82} metalness={0.12} /><Edges color="#4b8ba3" /></mesh>;
+  return <mesh position={position}><boxGeometry args={size} /><meshStandardMaterial color={color} roughness={0.82} metalness={0.12} /></mesh>;
 }
 
 function DataPackets() {
