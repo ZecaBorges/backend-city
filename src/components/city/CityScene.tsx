@@ -163,24 +163,7 @@ function Infrastructure({ selectedId, reducedMotion }: { selectedId: LandmarkId;
 }
 
 function Road({ position, size, color }: { position: [number, number, number]; size: [number, number, number]; color: string }) {
-  const halfX = size[0] / 2;
-  const halfZ = size[2] / 2;
-  const longAlongX = size[0] >= size[2];
-  const y = 0.077;
-  const gap = 0.012;
-  const first: [number, number, number][] = longAlongX
-    ? [[-halfX - gap, y, -halfZ - gap], [halfX + gap, y, -halfZ - gap]]
-    : [[-halfX - gap, y, -halfZ - gap], [-halfX - gap, y, halfZ + gap]];
-  const second: [number, number, number][] = longAlongX
-    ? [[-halfX - gap, y, halfZ + gap], [halfX + gap, y, halfZ + gap]]
-    : [[halfX + gap, y, -halfZ - gap], [halfX + gap, y, halfZ + gap]];
-  return (
-    <group position={position}>
-      <mesh><boxGeometry args={size} /><meshStandardMaterial color={color} roughness={0.82} metalness={0.12} /></mesh>
-      <Line points={first} color="#256a8a" lineWidth={1} transparent opacity={0.5} />
-      <Line points={second} color="#256a8a" lineWidth={1} transparent opacity={0.5} />
-    </group>
-  );
+  return <mesh position={position}><boxGeometry args={size} /><meshStandardMaterial color={color} roughness={0.82} metalness={0.12} /></mesh>;
 }
 
 function DataPackets() {
@@ -235,11 +218,11 @@ function CassemsDistrict({ landmark, selected, interactive, onSelect }: { landma
   return (
     <InteractiveGroup landmark={landmark} interactive={interactive} onSelect={onSelect}>
       <mesh geometry={boxGeometry} scale={[7, 2.2, 6]}><meshStandardMaterial color="#0b2925" roughness={0.58} metalness={0.32} /><Edges color={landmark.color} scale={1.01} /></mesh>
-      <group position={[0, 1.8, 0]}>
+      <group position={[0, 1.1, 0]}>
         {[-2.2, 0, 2.2].map((x, index) => <mesh key={x} position={[x, index === 1 ? 1.1 : 0, 0]}><cylinderGeometry args={[0.72, 0.92, index === 1 ? 4.6 : 2.6, 8]} /><meshStandardMaterial color={selected ? '#00e89d' : '#11382f'} metalness={0.5} roughness={0.4} /><Edges color="#00e89d" /></mesh>)}
         <Line points={[[-3, -0.8, 2.5], [-1, -0.8, 2.5], [0, -0.8, 1], [1, -0.8, 2.5], [3, -0.8, 2.5]]} color="#a2ffe1" lineWidth={2} />
       </group>
-      <SelectionBeacon selected={selected} color={landmark.color} radius={5.1} y={-3.22} />
+      <SelectionBeacon selected={selected} color={landmark.color} radius={5.1} y={-1.02} />
     </InteractiveGroup>
   );
 }
@@ -272,7 +255,7 @@ function EngineeringCore({ landmark, selected, interactive, onSelect, reducedMot
   return (
     <InteractiveGroup landmark={landmark} interactive={interactive} onSelect={onSelect}>
       <group ref={coreRef}>
-        <mesh><cylinderGeometry args={[2.1, 2.5, 1.2, 8]} /><meshStandardMaterial color="#1d1734" metalness={0.65} roughness={0.3} /><Edges color="#d946ef" /></mesh>
+        <mesh position-y={-0.9}><cylinderGeometry args={[2.1, 2.5, 1.2, 8]} /><meshStandardMaterial color="#1d1734" metalness={0.65} roughness={0.3} /><Edges color="#d946ef" /></mesh>
         <mesh position-y={1.8}><icosahedronGeometry args={[1.05, 1]} /><meshBasicMaterial color="#d946ef" wireframe toneMapped={false} /></mesh>
         {[0, 1, 2, 3].map((index) => <mesh key={index} rotation-y={(Math.PI / 2) * index} position={[Math.cos((Math.PI / 2) * index) * 2.8, 0.4, Math.sin((Math.PI / 2) * index) * 2.8]}><boxGeometry args={[0.45, 1.5, 0.45]} /><meshBasicMaterial color={index % 2 ? '#22d3ee' : '#d946ef'} toneMapped={false} /></mesh>)}
       </group>

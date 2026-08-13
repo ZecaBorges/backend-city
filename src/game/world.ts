@@ -64,7 +64,7 @@ export const worldLandmarks: WorldLandmark[] = [
     shortLabel: 'HEALTH',
     district: 'Health Operations Grid',
     color: '#00e89d',
-    position: [-14, 3.3, -10],
+    position: [-14, 1.1, -10],
     size: [7, 6.6, 6],
     cameraTarget: [-14, 1.2, -10],
     entryPoint: { x: -14, z: -6 },
