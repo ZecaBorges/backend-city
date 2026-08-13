@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'rea
 import * as THREE from 'three';
 import type { FastTravelRequest } from './CityExperience';
 import CampusProps from './CampusProps';
+import NeonSign from './NeonSign';
+import { experiences } from '../../data/resume';
 import { getCameraTarget, getCameraZoom } from '../../game/camera';
 import { calculateMovement, isEditableTarget, isPositionWalkable, type MovementKeys, type Position2D } from '../../game/movement';
 import {
@@ -34,6 +36,11 @@ interface CitySceneProps {
 }
 
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+
+function periodOf(landmark: WorldLandmark): string | undefined {
+  if (!landmark.experienceId) return undefined;
+  return experiences.find((experience) => experience.id === landmark.experienceId)?.period;
+}
 
 export default function CityScene({ selectedId, mode, fastTravelRequest, onSelect, onInspect, onDismissDossier, controlElementRef, joystickVectorRef, inspectSequenceRef }: CitySceneProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -205,10 +212,18 @@ function InteractiveGroup({ landmark, interactive, children, onSelect }: { landm
 
 function CareerTower({ landmark, selected, interactive, onSelect }: { landmark: WorldLandmark; selected: boolean; interactive: boolean; onSelect: (id: LandmarkId) => void }) {
   const [width, height, depth] = landmark.size;
+  const entry = landmark.entryPoint;
+  const alongZ = Math.abs(entry.z - landmark.position[2]) >= Math.abs(entry.x - landmark.position[0]);
+  const fromPositiveSide = alongZ ? entry.z >= landmark.position[2] : entry.x >= landmark.position[0];
+  const rotationY = alongZ ? (fromPositiveSide ? 0 : Math.PI) : (fromPositiveSide ? Math.PI / 2 : -Math.PI / 2);
+  const signPosition: [number, number, number] = alongZ
+    ? [0, -height / 2 + height * 0.52, (fromPositiveSide ? 1 : -1) * (depth / 2 + 0.14)]
+    : [(fromPositiveSide ? 1 : -1) * (width / 2 + 0.14), -height / 2 + height * 0.52, 0];
   return (
     <InteractiveGroup landmark={landmark} interactive={interactive} onSelect={onSelect}>
       <mesh geometry={boxGeometry} scale={[width, height, depth]}><meshStandardMaterial color={selected ? landmark.color : '#101a2d'} roughness={0.5} metalness={0.45} /><Edges color={landmark.color} scale={selected ? 1.025 : 1.005} /></mesh>
       <WindowBands width={width} height={height} depth={depth} color={landmark.color} />
+      <NeonSign text={landmark.label} sub={periodOf(landmark)} color={landmark.color} position={signPosition} rotationY={rotationY} fontSize={0.55} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={Math.max(width, depth) * 0.72} y={-height / 2 + 0.08} />
     </InteractiveGroup>
   );
@@ -222,6 +237,7 @@ function CassemsDistrict({ landmark, selected, interactive, onSelect }: { landma
         {[-2.2, 0, 2.2].map((x, index) => <mesh key={x} position={[x, index === 1 ? 1.1 : 0, 0]}><cylinderGeometry args={[0.72, 0.92, index === 1 ? 4.6 : 2.6, 8]} /><meshStandardMaterial color={selected ? '#00e89d' : '#11382f'} metalness={0.5} roughness={0.4} /><Edges color="#00e89d" /></mesh>)}
         <Line points={[[-3, -0.8, 2.5], [-1, -0.8, 2.5], [0, -0.8, 1], [1, -0.8, 2.5], [3, -0.8, 2.5]]} color="#a2ffe1" lineWidth={2} />
       </group>
+      <NeonSign text={landmark.label} sub={periodOf(landmark)} color={landmark.color} position={[0, 0.75, 2.9]} fontSize={0.55} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={5.1} y={-1.02} />
     </InteractiveGroup>
   );
@@ -233,6 +249,7 @@ function FiscalHub({ landmark, selected, interactive, onSelect }: { landmark: Wo
       <mesh geometry={boxGeometry} scale={landmark.size}><meshStandardMaterial color={selected ? '#006ca8' : '#10243a'} metalness={0.48} roughness={0.48} /><Edges color="#00a8ff" /></mesh>
       <group position={[0, 4.8, 0]}>{[-1.6, -0.53, 0.53, 1.6].map((x) => <mesh key={x} position={[x, 0, 0]}><boxGeometry args={[0.58, 0.58, 0.58]} /><meshBasicMaterial color="#76d4ff" toneMapped={false} /></mesh>)}</group>
       <Line points={[[-2, 4.1, 0], [2, 4.1, 0]]} color="#00a8ff" dashed dashSize={0.25} gapSize={0.18} lineWidth={2} />
+      <NeonSign text={landmark.label} sub={periodOf(landmark)} color={landmark.color} position={[0, -1.6, 2.62]} fontSize={0.55} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={3.8} y={-3.72} />
     </InteractiveGroup>
   );
@@ -244,6 +261,7 @@ function TrustGateway({ landmark, selected, interactive, onSelect }: { landmark:
       <mesh geometry={boxGeometry} scale={landmark.size}><meshStandardMaterial color={selected ? '#4b3eb3' : '#171a35'} roughness={0.48} metalness={0.42} /><Edges color={landmark.color} /></mesh>
       <mesh rotation-x={-Math.PI / 2}><torusGeometry args={[3.5, 0.09, 8, 48]} /><meshBasicMaterial color="#7c6cff" toneMapped={false} /></mesh>
       <mesh position={[0, 3.3, 0]}><octahedronGeometry args={[0.7, 0]} /><meshBasicMaterial color="#c9c2ff" wireframe toneMapped={false} /></mesh>
+      <NeonSign text={landmark.label} sub={periodOf(landmark)} color={landmark.color} position={[-2.62, 0, 0]} rotationY={-Math.PI / 2} fontSize={0.5} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={3.8} y={-2.42} />
     </InteractiveGroup>
   );
@@ -259,6 +277,7 @@ function EngineeringCore({ landmark, selected, interactive, onSelect, reducedMot
         <mesh position-y={1.8}><icosahedronGeometry args={[1.05, 1]} /><meshBasicMaterial color="#d946ef" wireframe toneMapped={false} /></mesh>
         {[0, 1, 2, 3].map((index) => <mesh key={index} rotation-y={(Math.PI / 2) * index} position={[Math.cos((Math.PI / 2) * index) * 2.8, 0.4, Math.sin((Math.PI / 2) * index) * 2.8]}><boxGeometry args={[0.45, 1.5, 0.45]} /><meshBasicMaterial color={index % 2 ? '#22d3ee' : '#d946ef'} toneMapped={false} /></mesh>)}
       </group>
+      <NeonSign text={landmark.label} color={landmark.color} position={[0, -0.5, 2.32]} fontSize={0.4} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={3.6} y={-1.42} />
     </InteractiveGroup>
   );
@@ -270,6 +289,7 @@ function AiResearchZone({ landmark, selected, interactive, onSelect }: { landmar
       <mesh geometry={boxGeometry} scale={landmark.size}><meshStandardMaterial color="#140b1c" transparent opacity={0.72} roughness={0.65} /><Edges color="#ff3d9a" /></mesh>
       {[-2.2, 0, 2.2].map((x, index) => <mesh key={x} position={[x, 2.2 + index * 0.4, 0]}><boxGeometry args={[1.25, 2.5 + index, 1.25]} /><meshBasicMaterial color="#ff3d9a" wireframe transparent opacity={selected ? 0.9 : 0.42} toneMapped={false} /></mesh>)}
       <mesh position={[0, 4.7, 0]} rotation-x={Math.PI / 2}><torusGeometry args={[2.5, 0.05, 6, 48]} /><meshBasicMaterial color="#ff3d9a" toneMapped={false} /></mesh>
+      <NeonSign text={landmark.label} color={landmark.color} position={[3.62, 0.5, 0]} rotationY={Math.PI / 2} fontSize={0.42} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={4.8} y={-1.02} />
     </InteractiveGroup>
   );
