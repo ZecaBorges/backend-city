@@ -85,6 +85,55 @@ describe('calculateMovement', () => {
 
     expect(next.x).toBe(9.5);
   });
+
+  it('moves with analog input, scaling speed by magnitude', () => {
+    const full = calculateMovement({ x: 0, z: 0 }, idle, 0.1, 10, bounds, undefined, { x: 1, z: 0 });
+    expect(full.x).toBeCloseTo(0.5);
+
+    const half = calculateMovement({ x: 0, z: 0 }, idle, 0.1, 10, bounds, undefined, { x: 0.5, z: 0 });
+    expect(half.x).toBeCloseTo(0.25);
+  });
+
+  it('gives analog input precedence over keys', () => {
+    const next = calculateMovement(
+      { x: 0, z: 0 },
+      { ...idle, forward: true, right: true },
+      0.1,
+      10,
+      bounds,
+      undefined,
+      { x: 0, z: -1 },
+    );
+    expect(next.x).toBe(0);
+    expect(next.z).toBeCloseTo(-0.5);
+  });
+
+  it('ignores a zero analog vector and falls back to keys', () => {
+    const next = calculateMovement(
+      { x: 0, z: 0 },
+      { ...idle, right: true },
+      0.1,
+      10,
+      bounds,
+      undefined,
+      { x: 0, z: 0 },
+    );
+    expect(next.x).toBeCloseTo(0.5);
+  });
+
+  it('keeps analog movement inside colliders with clamped magnitude', () => {
+    const obstacle = { minX: 1, maxX: 3, minZ: -1, maxZ: 1 };
+    const next = calculateMovement(
+      { x: 0.2, z: 0 },
+      idle,
+      0.05,
+      10,
+      bounds,
+      { radius: 0.5, obstacles: [obstacle] },
+      { x: Math.hypot(1, 1), z: 0 },
+    );
+    expect(next.x).toBe(0.2);
+  });
 });
 
 describe('circleIntersectsAabb', () => {

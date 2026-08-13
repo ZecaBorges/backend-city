@@ -1,7 +1,9 @@
 import { Component, useEffect, useRef, type ErrorInfo, type ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import type { LandmarkId } from '../../game/world';
+import type { Position2D } from '../../game/movement';
 import CityScene from './CityScene';
+import MobileControls from './MobileControls';
 import type { FastTravelRequest } from './CityExperience';
 
 interface CityCanvasProps {
@@ -10,6 +12,7 @@ interface CityCanvasProps {
   shouldFocus: boolean;
   fastTravelRequest: FastTravelRequest | null;
   onSelect: (id: LandmarkId) => void;
+  mobileControlsHidden?: boolean;
 }
 
 interface BoundaryState { failed: boolean; }
@@ -24,8 +27,10 @@ class WebGLErrorBoundary extends Component<{ children: ReactNode }, BoundaryStat
   }
 }
 
-export default function CityCanvas({ selectedId, mode, shouldFocus, fastTravelRequest, onSelect }: CityCanvasProps) {
+export default function CityCanvas({ selectedId, mode, shouldFocus, fastTravelRequest, onSelect, mobileControlsHidden = false }: CityCanvasProps) {
   const shellRef = useRef<HTMLDivElement>(null);
+  const joystickVectorRef = useRef<Position2D>({ x: 0, z: 0 });
+  const inspectSequenceRef = useRef(0);
 
   useEffect(() => {
     if (shouldFocus) shellRef.current?.focus();
@@ -47,10 +52,19 @@ export default function CityCanvas({ selectedId, mode, shouldFocus, fastTravelRe
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
           fallback={<div className="city-loading">WebGL indisponível neste dispositivo.</div>}
         >
-          <CityScene selectedId={selectedId} mode={mode} fastTravelRequest={fastTravelRequest} onSelect={onSelect} controlElementRef={shellRef} />
+          <CityScene
+            selectedId={selectedId}
+            mode={mode}
+            fastTravelRequest={fastTravelRequest}
+            onSelect={onSelect}
+            controlElementRef={shellRef}
+            joystickVectorRef={joystickVectorRef}
+            inspectSequenceRef={inspectSequenceRef}
+          />
         </Canvas>
         {mode === 'explore' && <div className="canvas-help" aria-hidden="true"><span><kbd>WASD</kbd> mover</span><span><kbd>E</kbd> inspecionar</span><span><kbd>CLIQUE</kbd> selecionar</span></div>}
-        {mode === 'explore' && <div className="touch-hint" aria-hidden="true">TOQUE EM UM DISTRITO · OU USE FAST_TRAVEL</div>}
+        {mode === 'explore' && <div className="touch-hint" aria-hidden="true">JOYSTICK CAMINHAR · BOTÃO INSPECIONAR</div>}
+        {mode === 'explore' && <MobileControls joystickVectorRef={joystickVectorRef} inspectSequenceRef={inspectSequenceRef} hidden={mobileControlsHidden} />}
       </div>
     </WebGLErrorBoundary>
   );

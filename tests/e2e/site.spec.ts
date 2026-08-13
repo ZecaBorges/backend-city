@@ -127,8 +127,25 @@ test('remains usable and free of horizontal overflow on mobile', async ({ page, 
   await expect(expandDossier).toBeVisible();
   await expandDossier.click();
   await expect(page.getByRole('button', { name: /Fechar detalhes/i })).toBeVisible();
+  await page.getByRole('button', { name: /Fechar detalhes/i }).click();
   const travelButtons = page.locator('.world-fast-travel > div');
   await expect(travelButtons).toHaveCSS('overflow-x', 'auto');
+
+  const joystick = page.locator('.mobile-joystick');
+  await expect(joystick).toBeVisible();
+  await expect(page.getByRole('button', { name: /Inspecionar distrito mais próximo/i })).toBeVisible();
+
+  const joystickBox = await joystick.boundingBox();
+  if (joystickBox) {
+    const centerX = joystickBox.x + joystickBox.width / 2;
+    const centerY = joystickBox.y + joystickBox.height / 2;
+    await page.mouse.move(centerX, centerY);
+    await page.mouse.down();
+    await page.mouse.move(centerX, centerY - 20, { steps: 4 });
+    await expect(page.locator('.mobile-joystick-knob')).toHaveAttribute('style', /translate3d/);
+    await page.mouse.up();
+  }
+
   const layout = await page.evaluate(() => ({
     documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
   }));

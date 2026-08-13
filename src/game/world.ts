@@ -237,6 +237,19 @@ export function getLandmark(id: LandmarkId): WorldLandmark {
   return landmark;
 }
 
+export function findNearestLandmark(position: Position2D, range: number = 7.5): LandmarkId | null {
+  let nearest: LandmarkId | null = null;
+  let nearestDistance = Infinity;
+  for (const landmark of worldLandmarks) {
+    const distance = Math.hypot(position.x - landmark.position[0], position.z - landmark.position[2]);
+    if (distance <= range && distance < nearestDistance) {
+      nearest = landmark.id;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
 export function resolveFastTravelDestination(
   request: FastTravelRequestLike | null,
   handledSequence: number,

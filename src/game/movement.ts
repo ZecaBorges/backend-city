@@ -58,9 +58,15 @@ export function calculateMovement(
   speed: number,
   bounds: Bounds2D,
   collision?: MovementCollisionOptions,
+  analog?: Position2D,
 ): Position2D {
   let xAxis = Number(keys.right) - Number(keys.left);
   let zAxis = Number(keys.backward) - Number(keys.forward);
+
+  if (analog && (analog.x !== 0 || analog.z !== 0)) {
+    xAxis = analog.x;
+    zAxis = analog.z;
+  }
 
   const length = Math.hypot(xAxis, zAxis);
   if (length > 0) {
@@ -68,6 +74,7 @@ export function calculateMovement(
     zAxis /= length;
   }
 
+  const magnitude = analog && (analog.x !== 0 || analog.z !== 0) ? Math.min(1, Math.hypot(analog.x, analog.z)) : 1;
   const safeDelta = Math.min(Math.max(delta, 0), 0.05);
 
   const radius = collision?.radius ?? 0;
@@ -75,8 +82,8 @@ export function calculateMovement(
   const maxX = bounds.maxX - radius;
   const minZ = bounds.minZ + radius;
   const maxZ = bounds.maxZ - radius;
-  const intendedX = Math.min(maxX, Math.max(minX, position.x + xAxis * speed * safeDelta));
-  const intendedZ = Math.min(maxZ, Math.max(minZ, position.z + zAxis * speed * safeDelta));
+  const intendedX = Math.min(maxX, Math.max(minX, position.x + xAxis * speed * safeDelta * magnitude));
+  const intendedZ = Math.min(maxZ, Math.max(minZ, position.z + zAxis * speed * safeDelta * magnitude));
 
   if (!collision) return { x: intendedX, z: intendedZ };
 

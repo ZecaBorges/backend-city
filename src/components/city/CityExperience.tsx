@@ -154,6 +154,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
               shouldFocus={mode === 'explore' && !tutorialOpen && tutorialReturnsToCanvas}
               fastTravelRequest={fastTravelRequest}
               onSelect={selectLandmark}
+              mobileControlsHidden={isMobile && dossierExpanded}
             />
           </Suspense>
         ) : (

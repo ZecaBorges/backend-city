@@ -10,6 +10,7 @@ import {
   avatarCollisionRadius,
   avatarSpawn,
   campusPaths,
+  findNearestLandmark,
   getLandmark,
   worldBounds,
   worldColliders,
@@ -25,11 +26,13 @@ interface CitySceneProps {
   fastTravelRequest: FastTravelRequest | null;
   onSelect: (id: LandmarkId) => void;
   controlElementRef: RefObject<HTMLDivElement | null>;
+  joystickVectorRef: RefObject<Position2D>;
+  inspectSequenceRef: RefObject<number>;
 }
 
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
 
-export default function CityScene({ selectedId, mode, fastTravelRequest, onSelect, controlElementRef }: CitySceneProps) {
+export default function CityScene({ selectedId, mode, fastTravelRequest, onSelect, controlElementRef, joystickVectorRef, inspectSequenceRef }: CitySceneProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const avatarPositionRef = useRef<Position2D>({ ...avatarSpawn });
   useEffect(() => {
@@ -62,6 +65,8 @@ export default function CityScene({ selectedId, mode, fastTravelRequest, onSelec
           fastTravelRequest={fastTravelRequest}
           onSelect={onSelect}
           controlElementRef={controlElementRef}
+          joystickVectorRef={joystickVectorRef}
+          inspectSequenceRef={inspectSequenceRef}
         />
       )}
       <CameraDirector selectedId={selectedId} mode={mode} avatarPositionRef={avatarPositionRef} reducedMotion={reducedMotion} />
@@ -234,15 +239,20 @@ function AvatarController({
   fastTravelRequest,
   onSelect,
   controlElementRef,
+  joystickVectorRef,
+  inspectSequenceRef,
 }: {
   avatarPositionRef: RefObject<Position2D>;
   fastTravelRequest: FastTravelRequest | null;
   onSelect: (id: LandmarkId) => void;
   controlElementRef: RefObject<HTMLDivElement | null>;
+  joystickVectorRef: RefObject<Position2D>;
+  inspectSequenceRef: RefObject<number>;
 }) {
   const avatarRef = useRef<THREE.Group>(null);
   const keys = useRef<MovementKeys>({ forward: false, backward: false, left: false, right: false });
   const handledTravelSequenceRef = useRef(0);
+  const handledInspectSequenceRef = useRef(0);
 
   useEffect(() => {
     const keyMap: Record<string, keyof MovementKeys | undefined> = { w: 'forward', arrowup: 'forward', s: 'backward', arrowdown: 'backward', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
@@ -250,10 +260,7 @@ function AvatarController({
       if (isEditableTarget(event.target)) return;
       const mapped = keyMap[event.key.toLowerCase()];
       if (mapped) { keys.current[mapped] = pressed; event.preventDefault(); }
-      if (pressed && event.key.toLowerCase() === 'e') {
-        const nearest = worldLandmarks.map((landmark) => ({ id: landmark.id, distance: Math.hypot(avatarPositionRef.current.x - landmark.position[0], avatarPositionRef.current.z - landmark.position[2]) })).sort((a, b) => a.distance - b.distance)[0];
-        if (nearest && nearest.distance < 7.5) onSelect(nearest.id);
-      }
+      if (pressed && event.key.toLowerCase() === 'e') inspectNearest();
     }
     const onKeyDown = (event: KeyboardEvent) => updateKey(event, true);
     const onKeyUp = (event: KeyboardEvent) => updateKey(event, false);
@@ -273,13 +280,26 @@ function AvatarController({
     if (!isPositionWalkable(destination, worldBounds, { radius: avatarCollisionRadius, obstacles: worldColliders })) return;
     handledTravelSequenceRef.current = fastTravelRequest.sequence;
     keys.current = { forward: false, backward: false, left: false, right: false };
+    joystickVectorRef.current.x = 0;
+    joystickVectorRef.current.z = 0;
     avatarPositionRef.current.x = destination.x;
     avatarPositionRef.current.z = destination.z;
     avatarRef.current?.position.set(destination.x, 0.78, destination.z);
-  }, [avatarPositionRef, fastTravelRequest]);
+  }, [avatarPositionRef, fastTravelRequest, joystickVectorRef]);
+
+  useEffect(() => {
+    if (!inspectSequenceRef.current || inspectSequenceRef.current <= handledInspectSequenceRef.current) return;
+    handledInspectSequenceRef.current = inspectSequenceRef.current;
+    inspectNearest();
+  });
+
+  function inspectNearest() {
+    const nearest = findNearestLandmark(avatarPositionRef.current, 7.5);
+    if (nearest) onSelect(nearest);
+  }
 
   useFrame((_, delta) => {
-    const next = calculateMovement(avatarPositionRef.current, keys.current, delta, 8, worldBounds, { radius: avatarCollisionRadius, obstacles: worldColliders });
+    const next = calculateMovement(avatarPositionRef.current, keys.current, delta, 8, worldBounds, { radius: avatarCollisionRadius, obstacles: worldColliders }, joystickVectorRef.current);
     const dx = next.x - avatarPositionRef.current.x;
     const dz = next.z - avatarPositionRef.current.z;
     avatarPositionRef.current.x = next.x;
