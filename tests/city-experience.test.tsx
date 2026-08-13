@@ -4,7 +4,13 @@ import CityExperience from '../src/components/city/CityExperience';
 import { experiences } from '../src/data/resume';
 
 vi.mock('../src/components/city/CityCanvas', () => ({
-  default: ({ mode }: { mode: string }) => <div data-testid="city-canvas">Canvas {mode}</div>,
+  default: ({ mode, fastTravelRequest, onSelect, onInspect }: { mode: string; fastTravelRequest: unknown; onSelect: (id: string) => void; onInspect: (id: string) => void }) => (
+    <div data-testid="city-canvas" data-travel={fastTravelRequest ? 'yes' : 'no'}>
+      Canvas {mode}
+      <button type="button" onClick={() => onInspect?.('pluxxe')}>INSPECT-INTERNAL</button>
+      <button type="button" onClick={() => onSelect?.('pluxxe')}>SELECT-INTERNAL</button>
+    </div>
+  ),
 }));
 
 function mockWebGL(available: boolean) {
@@ -141,6 +147,22 @@ describe('CityExperience', () => {
     const dossier = screen.getByRole('article');
     expect(dossier).toHaveClass('is-expanded');
     expect(screen.queryByRole('button', { name: /Expandir detalhes|Fechar detalhes/ })).not.toBeInTheDocument();
+    contextSpy.mockRestore();
+  });
+
+  it('inspects a landmark without teleporting, while direct selection travels', () => {
+    const contextSpy = mockWebGL(true);
+    render(<CityExperience experiences={experiences} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Explorar livremente' }));
+    expect(screen.getByTestId('city-canvas')).toHaveAttribute('data-travel', 'no');
+
+    fireEvent.click(screen.getByRole('button', { name: 'INSPECT-INTERNAL' }));
+    expect(screen.getByRole('heading', { name: 'PLUXXE' })).toBeInTheDocument();
+    expect(screen.getByTestId('city-canvas')).toHaveAttribute('data-travel', 'no');
+
+    fireEvent.click(screen.getByRole('button', { name: 'SELECT-INTERNAL' }));
+    expect(screen.getByTestId('city-canvas')).toHaveAttribute('data-travel', 'yes');
     contextSpy.mockRestore();
   });
 

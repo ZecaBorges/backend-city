@@ -59,7 +59,7 @@ export default function CityTutorial({ onClose }: CityTutorialProps) {
       <ol className="tutorial-steps">
         <li>
           <span>01</span>
-          <div><strong>Movimente-se</strong><p className="desktop-instruction">Clique no mapa e use WASD ou as setas.</p><p className="mobile-instruction">Use o joystick para caminhar, toque nos prédios ou use a viagem rápida.</p></div>
+          <div><strong>Movimente-se</strong><p className="desktop-instruction">Use WASD ou as setas para caminhar.</p><p className="mobile-instruction">Use o joystick para caminhar, toque nos prédios ou use a viagem rápida.</p></div>
         </li>
         <li>
           <span>02</span>

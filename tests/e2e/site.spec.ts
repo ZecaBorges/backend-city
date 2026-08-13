@@ -86,6 +86,44 @@ test('initializes WebGL without console errors on supported desktop', async ({ p
   expect(errors).toEqual([]);
 });
 
+test('moves with arrows right after entering explore, and E inspects without teleporting', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'desktop keyboard verification');
+  await page.goto('./');
+  await page.evaluate(() => localStorage.setItem('backend-city:tutorial:v1', 'complete'));
+  await page.getByRole('button', { name: 'Explorar livremente' }).click();
+
+  const shell = page.locator('.canvas-shell');
+  await expect(shell).toHaveAttribute('data-hero', '0.0,17.0');
+
+  await page.keyboard.down('w');
+  try {
+    await expect.poll(async () => {
+      const hero = await shell.getAttribute('data-hero');
+      return hero ? Number(hero.split(',')[1]) : 99;
+    }, { timeout: 30000 }).toBeLessThan(4);
+  } finally {
+    await page.keyboard.up('w');
+  }
+
+  const heroBeforeInspect = await shell.getAttribute('data-hero');
+  await page.keyboard.press('e');
+  await expect(page.locator('.landmark-dossier').getByRole('heading', { name: 'ENGINEERING CORE' })).toBeVisible();
+  await page.waitForTimeout(250);
+  expect(await shell.getAttribute('data-hero')).toBe(heroBeforeInspect);
+
+  const heroBeforeArrow = await shell.getAttribute('data-hero');
+  const beforeX = Number(heroBeforeArrow?.split(',')[0]);
+  await page.keyboard.down('ArrowRight');
+  try {
+    await expect.poll(async () => {
+      const hero = await shell.getAttribute('data-hero');
+      return hero ? Number(hero.split(',')[0]) : 0;
+    }, { timeout: 30000 }).toBeGreaterThan(beforeX + 2);
+  } finally {
+    await page.keyboard.up('ArrowRight');
+  }
+});
+
 test('closes 3D navigation and focuses the main resume', async ({ page }) => {
   await disableWebGL(page);
   await page.goto('./');

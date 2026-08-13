@@ -26,6 +26,7 @@ interface CitySceneProps {
   mode: 'menu' | 'tour' | 'explore';
   fastTravelRequest: FastTravelRequest | null;
   onSelect: (id: LandmarkId) => void;
+  onInspect: (id: LandmarkId) => void;
   onDismissDossier: () => void;
   controlElementRef: RefObject<HTMLDivElement | null>;
   joystickVectorRef: RefObject<Position2D>;
@@ -34,7 +35,7 @@ interface CitySceneProps {
 
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
 
-export default function CityScene({ selectedId, mode, fastTravelRequest, onSelect, onDismissDossier, controlElementRef, joystickVectorRef, inspectSequenceRef }: CitySceneProps) {
+export default function CityScene({ selectedId, mode, fastTravelRequest, onSelect, onInspect, onDismissDossier, controlElementRef, joystickVectorRef, inspectSequenceRef }: CitySceneProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const avatarPositionRef = useRef<Position2D>({ ...avatarSpawn });
   useEffect(() => {
@@ -66,7 +67,7 @@ export default function CityScene({ selectedId, mode, fastTravelRequest, onSelec
           selectedId={selectedId}
           avatarPositionRef={avatarPositionRef}
           fastTravelRequest={fastTravelRequest}
-          onSelect={onSelect}
+          onInspect={onInspect}
           onDismissDossier={onDismissDossier}
           controlElementRef={controlElementRef}
           joystickVectorRef={joystickVectorRef}
@@ -242,7 +243,7 @@ function AvatarController({
   selectedId,
   avatarPositionRef,
   fastTravelRequest,
-  onSelect,
+  onInspect,
   onDismissDossier,
   controlElementRef,
   joystickVectorRef,
@@ -251,7 +252,7 @@ function AvatarController({
   selectedId: LandmarkId;
   avatarPositionRef: RefObject<Position2D>;
   fastTravelRequest: FastTravelRequest | null;
-  onSelect: (id: LandmarkId) => void;
+  onInspect: (id: LandmarkId) => void;
   onDismissDossier: () => void;
   controlElementRef: RefObject<HTMLDivElement | null>;
   joystickVectorRef: RefObject<Position2D>;
@@ -269,7 +270,15 @@ function AvatarController({
 
   useEffect(() => {
     const keyMap: Record<string, keyof MovementKeys | undefined> = { w: 'forward', arrowup: 'forward', s: 'backward', arrowdown: 'backward', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
+    const cityVisibleRef = { current: true };
+    let observer: IntersectionObserver | undefined;
+    const element = controlElementRef.current;
+    if (typeof IntersectionObserver !== 'undefined' && element) {
+      observer = new IntersectionObserver(([entry]) => { cityVisibleRef.current = entry.isIntersecting; }, { threshold: 0.25 });
+      observer.observe(element);
+    }
     function updateKey(event: KeyboardEvent, pressed: boolean) {
+      if (!cityVisibleRef.current) return;
       if (isEditableTarget(event.target)) return;
       const mapped = keyMap[event.key.toLowerCase()];
       if (mapped) { keys.current[mapped] = pressed; event.preventDefault(); }
@@ -278,13 +287,18 @@ function AvatarController({
     const onKeyDown = (event: KeyboardEvent) => updateKey(event, true);
     const onKeyUp = (event: KeyboardEvent) => updateKey(event, false);
     const reset = () => { keys.current = { forward: false, backward: false, left: false, right: false }; };
-    const element = controlElementRef.current;
-    element?.addEventListener('keydown', onKeyDown);
-    element?.addEventListener('keyup', onKeyUp);
-    element?.addEventListener('blur', reset);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', reset);
     document.addEventListener('visibilitychange', reset);
-    return () => { element?.removeEventListener('keydown', onKeyDown); element?.removeEventListener('keyup', onKeyUp); element?.removeEventListener('blur', reset); document.removeEventListener('visibilitychange', reset); };
-  }, [avatarPositionRef, controlElementRef, onSelect]);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', reset);
+      document.removeEventListener('visibilitychange', reset);
+      observer?.disconnect();
+    };
+  }, [avatarPositionRef, controlElementRef, onInspect]);
 
   useEffect(() => {
     if (!fastTravelRequest || fastTravelRequest.sequence <= handledTravelSequenceRef.current) return;
@@ -308,7 +322,11 @@ function AvatarController({
 
   function inspectNearest() {
     const nearest = findNearestLandmark(avatarPositionRef.current, 7.5);
-    if (nearest) onSelect(nearest);
+    if (!nearest) return;
+    const landmark = getLandmark(nearest);
+    const distance = Math.hypot(avatarPositionRef.current.x - landmark.position[0], avatarPositionRef.current.z - landmark.position[2]);
+    if (distance > dossierDismissDistance) dismissedLandmarkRef.current = nearest;
+    onInspect(nearest);
   }
 
   useFrame((_, delta) => {
@@ -320,6 +338,11 @@ function AvatarController({
     if (avatarRef.current) {
       avatarRef.current.position.set(next.x, 0.78, next.z);
       if (Math.hypot(dx, dz) > 0.001) avatarRef.current.rotation.y = Math.atan2(dx, dz);
+    }
+    const shell = controlElementRef.current;
+    if (shell) {
+      const label = `${next.x.toFixed(1)},${next.z.toFixed(1)}`;
+      if (shell.dataset.hero !== label) shell.dataset.hero = label;
     }
     const landmark = getLandmark(selectedId);
     const distance = Math.hypot(avatarPositionRef.current.x - landmark.position[0], avatarPositionRef.current.z - landmark.position[2]);

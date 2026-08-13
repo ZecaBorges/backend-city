@@ -165,9 +165,11 @@ describe('isPositionWalkable', () => {
 });
 
 describe('isEditableTarget', () => {
-  it('protects interactive controls from game keyboard capture', () => {
-    expect(isEditableTarget(document.createElement('button'))).toBe(true);
+  it('protects only typing controls from game keyboard capture', () => {
     expect(isEditableTarget(document.createElement('input'))).toBe(true);
+    expect(isEditableTarget(document.createElement('textarea'))).toBe(true);
+    expect(isEditableTarget(document.createElement('button'))).toBe(false);
+    expect(isEditableTarget(document.createElement('a'))).toBe(false);
     expect(isEditableTarget(document.createElement('div'))).toBe(false);
   });
 });

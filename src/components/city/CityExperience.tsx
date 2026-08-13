@@ -119,6 +119,12 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
     if (mode === 'menu') setMode('explore');
   }
 
+  function inspectLandmark(id: LandmarkId) {
+    setSelectedId(id);
+    setDossierVisible(true);
+    setDossierExpanded(false);
+  }
+
   function fastTravelToLandmark(id: LandmarkId) {
     setSelectedId(id);
     setDossierVisible(true);
@@ -158,6 +164,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
               shouldFocus={mode === 'explore' && !tutorialOpen && tutorialReturnsToCanvas}
               fastTravelRequest={fastTravelRequest}
               onSelect={selectLandmark}
+              onInspect={inspectLandmark}
               onDismissDossier={() => setDossierVisible(false)}
               mobileControlsHidden={isMobile && dossierExpanded}
             />
