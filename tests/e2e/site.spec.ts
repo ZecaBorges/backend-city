@@ -76,6 +76,13 @@ test('initializes WebGL without console errors on supported desktop', async ({ p
   await page.waitForTimeout(250);
   await page.getByRole('button', { name: 'EVENTS' }).click();
   await expect(page.locator('.landmark-dossier').getByRole('heading', { name: 'PLUXXE' })).toBeVisible();
+  await page.locator('.canvas-shell').evaluate((element) => (element as HTMLElement).focus());
+  await page.keyboard.down('s');
+  try {
+    await expect(page.locator('.landmark-dossier')).toBeHidden({ timeout: 20000 });
+  } finally {
+    await page.keyboard.up('s');
+  }
   expect(errors).toEqual([]);
 });
 

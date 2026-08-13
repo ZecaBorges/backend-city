@@ -40,6 +40,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
   const [tourElapsed, setTourElapsed] = useState(0);
   const [tourPaused, setTourPaused] = useState(false);
   const [fastTravelRequest, setFastTravelRequest] = useState<FastTravelRequest | null>(null);
+  const [dossierVisible, setDossierVisible] = useState(true);
   const [dossierExpanded, setDossierExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const tourStartRef = useRef(0);
@@ -96,6 +97,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
 
   function startExplore() {
     setFastTravelRequest(null);
+    setDossierVisible(true);
     setMode('explore');
     if (!hasCompletedTutorial(window.localStorage)) {
       setTutorialReturnsToCanvas(true);
@@ -110,6 +112,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
 
   function selectLandmark(id: LandmarkId) {
     setSelectedId(id);
+    setDossierVisible(true);
     setDossierExpanded(false);
     travelSequenceRef.current += 1;
     setFastTravelRequest({ landmarkId: id, sequence: travelSequenceRef.current });
@@ -118,6 +121,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
 
   function fastTravelToLandmark(id: LandmarkId) {
     setSelectedId(id);
+    setDossierVisible(true);
     setDossierExpanded(false);
     travelSequenceRef.current += 1;
     setFastTravelRequest({ landmarkId: id, sequence: travelSequenceRef.current });
@@ -154,6 +158,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
               shouldFocus={mode === 'explore' && !tutorialOpen && tutorialReturnsToCanvas}
               fastTravelRequest={fastTravelRequest}
               onSelect={selectLandmark}
+              onDismissDossier={() => setDossierVisible(false)}
               mobileControlsHidden={isMobile && dossierExpanded}
             />
           </Suspense>
@@ -249,7 +254,7 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
         </section>
       )}
 
-      {mode === 'explore' && (
+      {mode === 'explore' && dossierVisible && (
         <LandmarkDossier
           landmarkId={selectedId}
           experience={selectedExperience}

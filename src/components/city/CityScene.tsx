@@ -10,6 +10,7 @@ import {
   avatarCollisionRadius,
   avatarSpawn,
   campusPaths,
+  dossierDismissDistance,
   findNearestLandmark,
   getLandmark,
   worldBounds,
@@ -25,6 +26,7 @@ interface CitySceneProps {
   mode: 'menu' | 'tour' | 'explore';
   fastTravelRequest: FastTravelRequest | null;
   onSelect: (id: LandmarkId) => void;
+  onDismissDossier: () => void;
   controlElementRef: RefObject<HTMLDivElement | null>;
   joystickVectorRef: RefObject<Position2D>;
   inspectSequenceRef: RefObject<number>;
@@ -32,7 +34,7 @@ interface CitySceneProps {
 
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
 
-export default function CityScene({ selectedId, mode, fastTravelRequest, onSelect, controlElementRef, joystickVectorRef, inspectSequenceRef }: CitySceneProps) {
+export default function CityScene({ selectedId, mode, fastTravelRequest, onSelect, onDismissDossier, controlElementRef, joystickVectorRef, inspectSequenceRef }: CitySceneProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const avatarPositionRef = useRef<Position2D>({ ...avatarSpawn });
   useEffect(() => {
@@ -61,9 +63,11 @@ export default function CityScene({ selectedId, mode, fastTravelRequest, onSelec
       ))}
       {mode === 'explore' && (
         <AvatarController
+          selectedId={selectedId}
           avatarPositionRef={avatarPositionRef}
           fastTravelRequest={fastTravelRequest}
           onSelect={onSelect}
+          onDismissDossier={onDismissDossier}
           controlElementRef={controlElementRef}
           joystickVectorRef={joystickVectorRef}
           inspectSequenceRef={inspectSequenceRef}
@@ -235,16 +239,20 @@ function SelectionBeacon({ selected, color, radius, y }: { selected: boolean; co
 }
 
 function AvatarController({
+  selectedId,
   avatarPositionRef,
   fastTravelRequest,
   onSelect,
+  onDismissDossier,
   controlElementRef,
   joystickVectorRef,
   inspectSequenceRef,
 }: {
+  selectedId: LandmarkId;
   avatarPositionRef: RefObject<Position2D>;
   fastTravelRequest: FastTravelRequest | null;
   onSelect: (id: LandmarkId) => void;
+  onDismissDossier: () => void;
   controlElementRef: RefObject<HTMLDivElement | null>;
   joystickVectorRef: RefObject<Position2D>;
   inspectSequenceRef: RefObject<number>;
@@ -253,6 +261,11 @@ function AvatarController({
   const keys = useRef<MovementKeys>({ forward: false, backward: false, left: false, right: false });
   const handledTravelSequenceRef = useRef(0);
   const handledInspectSequenceRef = useRef(0);
+  const dismissedLandmarkRef = useRef<LandmarkId | null>(null);
+
+  useEffect(() => {
+    dismissedLandmarkRef.current = null;
+  }, [selectedId]);
 
   useEffect(() => {
     const keyMap: Record<string, keyof MovementKeys | undefined> = { w: 'forward', arrowup: 'forward', s: 'backward', arrowdown: 'backward', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
@@ -307,6 +320,12 @@ function AvatarController({
     if (avatarRef.current) {
       avatarRef.current.position.set(next.x, 0.78, next.z);
       if (Math.hypot(dx, dz) > 0.001) avatarRef.current.rotation.y = Math.atan2(dx, dz);
+    }
+    const landmark = getLandmark(selectedId);
+    const distance = Math.hypot(avatarPositionRef.current.x - landmark.position[0], avatarPositionRef.current.z - landmark.position[2]);
+    if (distance > dossierDismissDistance && dismissedLandmarkRef.current !== selectedId) {
+      dismissedLandmarkRef.current = selectedId;
+      onDismissDossier();
     }
   }, -2);
 

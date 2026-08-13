@@ -52,6 +52,7 @@ export const worldBounds = {
 
 export const avatarSpawn: Position2D = { x: 0, z: 17 };
 export const avatarCollisionRadius = 0.48;
+export const dossierDismissDistance = 16;
 
 export const worldLandmarks: WorldLandmark[] = [
   {
