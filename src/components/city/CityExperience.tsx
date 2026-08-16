@@ -166,6 +166,8 @@ export default function CityExperience({ experiences }: CityExperienceProps) {
               onSelect={selectLandmark}
               onInspect={inspectLandmark}
               onDismissDossier={() => setDossierVisible(false)}
+              dossierVisible={dossierVisible}
+              isMobile={isMobile}
               mobileControlsHidden={isMobile && dossierExpanded}
             />
           </Suspense>

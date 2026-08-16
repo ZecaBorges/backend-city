@@ -1,4 +1,4 @@
-import { Edges, Grid, Line, Sparkles } from '@react-three/drei';
+import { Edges, Grid, Line } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import * as THREE from 'three';
@@ -6,14 +6,17 @@ import type { FastTravelRequest } from './CityExperience';
 import CampusProps from './CampusProps';
 import NeonSign from './NeonSign';
 import { experiences } from '../../data/resume';
-import { getCameraTarget, getCameraZoom } from '../../game/camera';
+import { getCameraFrameOffset, getCameraTarget, getCameraZoom, type CameraMode } from '../../game/camera';
 import { calculateMovement, isEditableTarget, isPositionWalkable, type MovementKeys, type Position2D } from '../../game/movement';
+import { createDeterministicPositions, createSeededRandom } from '../../game/random';
+import { getSignPresentation } from '../../game/signage';
 import {
   avatarCollisionRadius,
   avatarSpawn,
   campusPaths,
   dossierDismissDistance,
   findNearestLandmark,
+  getDossierDismissalState,
   getLandmark,
   worldBounds,
   worldColliders,
@@ -30,19 +33,44 @@ interface CitySceneProps {
   onSelect: (id: LandmarkId) => void;
   onInspect: (id: LandmarkId) => void;
   onDismissDossier: () => void;
+  dossierVisible: boolean;
+  isMobile: boolean;
   controlElementRef: RefObject<HTMLDivElement | null>;
   joystickVectorRef: RefObject<Position2D>;
   inspectSequenceRef: RefObject<number>;
 }
 
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+const ambientParticleGeometry = makeAmbientParticleGeometry();
+const cassemsPulsePoints: [number, number, number][] = [[-3, -0.8, 2.5], [-1, -0.8, 2.5], [0, -0.8, 1], [1, -0.8, 2.5], [3, -0.8, 2.5]];
+const fiscalHubSignalPoints: [number, number, number][] = [[-2, 4.1, 0], [2, 4.1, 0]];
+const routeLandmarkIds: LandmarkId[] = ['cassems', 'pluxxe', 'visavale', 'squad-app', 'educarmais', 'ai-rd'];
+const coreEntryPoint = getLandmark('engineering-core').entryPoint;
+const campusRoutes = routeLandmarkIds.map((id) => {
+  const landmark = getLandmark(id);
+  const routeX = id === 'cassems' || id === 'ai-rd' ? -8 : id === 'pluxxe' ? 8 : landmark.entryPoint.x;
+  const points: [number, number, number][] = [
+    [coreEntryPoint.x, 0.13, coreEntryPoint.z],
+    [0, 0.13, 8],
+    [routeX, 0.13, 8],
+    [routeX, 0.13, landmark.entryPoint.z],
+    [landmark.entryPoint.x, 0.13, landmark.entryPoint.z],
+  ];
+  return { id, landmark, points };
+});
+
+function makeAmbientParticleGeometry(): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(createDeterministicPositions(16, 0xa81e17, [[-30, 30], [1, 9], [-24, 26]]), 3));
+  return geometry;
+}
 
 function periodOf(landmark: WorldLandmark): string | undefined {
   if (!landmark.experienceId) return undefined;
   return experiences.find((experience) => experience.id === landmark.experienceId)?.period;
 }
 
-export default function CityScene({ selectedId, mode, fastTravelRequest, onSelect, onInspect, onDismissDossier, controlElementRef, joystickVectorRef, inspectSequenceRef }: CitySceneProps) {
+export default function CityScene({ selectedId, mode, fastTravelRequest, onSelect, onInspect, onDismissDossier, dossierVisible, isMobile, controlElementRef, joystickVectorRef, inspectSequenceRef }: CitySceneProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const avatarPositionRef = useRef<Position2D>({ ...avatarSpawn });
   useEffect(() => {
@@ -67,7 +95,7 @@ export default function CityScene({ selectedId, mode, fastTravelRequest, onSelec
       <Infrastructure selectedId={selectedId} reducedMotion={reducedMotion} />
       <CampusProps />
       {worldLandmarks.map((landmark) => (
-        <Landmark key={landmark.id} landmark={landmark} selected={landmark.id === selectedId} interactive={mode === 'explore'} onSelect={onSelect} reducedMotion={reducedMotion} />
+        <Landmark key={landmark.id} landmark={landmark} selected={landmark.id === selectedId} mode={mode} mobile={isMobile} interactive={mode === 'explore'} onSelect={onSelect} reducedMotion={reducedMotion} />
       ))}
       {mode === 'explore' && (
         <AvatarController
@@ -76,12 +104,13 @@ export default function CityScene({ selectedId, mode, fastTravelRequest, onSelec
           fastTravelRequest={fastTravelRequest}
           onInspect={onInspect}
           onDismissDossier={onDismissDossier}
+          dossierVisible={dossierVisible}
           controlElementRef={controlElementRef}
           joystickVectorRef={joystickVectorRef}
           inspectSequenceRef={inspectSequenceRef}
         />
       )}
-      <CameraDirector selectedId={selectedId} mode={mode} avatarPositionRef={avatarPositionRef} reducedMotion={reducedMotion} />
+      <CameraDirector selectedId={selectedId} mode={mode} dossierVisible={dossierVisible} avatarPositionRef={avatarPositionRef} reducedMotion={reducedMotion} />
     </>
   );
 }
@@ -92,31 +121,18 @@ function makeFloorTexture(): THREE.CanvasTexture {
   canvas.height = 512;
   const context = canvas.getContext('2d');
   if (!context) return new THREE.CanvasTexture(canvas);
-  context.fillStyle = '#10233a';
+  const random = createSeededRandom(0x51a7c17);
+  context.fillStyle = '#0a1726';
   context.fillRect(0, 0, 512, 512);
-  context.strokeStyle = '#0b1826';
-  context.lineWidth = 3;
-  const panel = 64;
-  for (let x = 0; x <= 512; x += panel) {
-    context.beginPath();
-    context.moveTo(x + 0.5, 0);
-    context.lineTo(x + 0.5, 512);
-    context.stroke();
-  }
-  for (let y = 0; y <= 512; y += panel) {
-    context.beginPath();
-    context.moveTo(0, y + 0.5);
-    context.lineTo(512, y + 0.5);
-    context.stroke();
-  }
-  for (let index = 0; index < 96; index += 1) {
-    context.fillStyle = `rgba(${8 + Math.random() * 40}, ${18 + Math.random() * 42}, ${28 + Math.random() * 56}, 0.35)`;
-    context.fillRect(Math.random() * 512, Math.random() * 512, 2 + Math.random() * 5, 2 + Math.random() * 5);
+  for (let index = 0; index < 28; index += 1) {
+    const lightness = 28 + Math.floor(random() * 20);
+    context.fillStyle = `rgba(${lightness - 12}, ${lightness}, ${lightness + 14}, 0.09)`;
+    context.fillRect(random() * 512, random() * 512, 3 + random() * 8, 3 + random() * 8);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(17, 14.5);
+  texture.repeat.set(4, 3.5);
   texture.anisotropy = 4;
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
@@ -135,36 +151,37 @@ function Environment({ reducedMotion }: { reducedMotion: boolean }) {
   return (
     <>
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.12, 1]}>
-        <planeGeometry args={[68, 58]} />
-        <meshStandardMaterial color={floorTexture ? '#ffffff' : '#0d1d31'} map={floorTexture ?? undefined} roughness={0.96} />
+        <planeGeometry args={[110, 92]} />
+        <meshStandardMaterial color={floorTexture ? '#ffffff' : '#0a1726'} map={floorTexture ?? undefined} roughness={0.98} />
       </mesh>
-      <Grid position={[0, 0, 1]} args={[68, 58]} cellSize={1} cellThickness={0.35} cellColor="#1d4f6e" sectionSize={5} sectionThickness={0.85} sectionColor="#1f7394" fadeDistance={68} infiniteGrid={false} />
-      <Line points={[[-34, 0.02, -28], [34, 0.02, -28], [34, 0.02, 30], [-34, 0.02, 30], [-34, 0.02, -28]]} color="#2b7a96" lineWidth={1.4} transparent opacity={0.7} />
-      {!reducedMotion && <Sparkles count={48} scale={[60, 10, 50]} position={[0, 5, 1]} size={1.2} speed={0.1} opacity={0.2} color="#73eaff" />}
+      <Grid position={[0, 0, 1]} args={[86, 72]} cellSize={5} cellThickness={0.22} cellColor="#17405a" sectionSize={10} sectionThickness={0.48} sectionColor="#1b617d" fadeDistance={62} infiniteGrid={false} />
+      {!reducedMotion && <AmbientParticles />}
     </>
+  );
+}
+
+function AmbientParticles() {
+  const particlesRef = useRef<THREE.Points>(null);
+  useFrame((_, delta) => {
+    if (particlesRef.current) particlesRef.current.rotation.y += delta * 0.004;
+  });
+  return (
+    <points ref={particlesRef} geometry={ambientParticleGeometry}>
+      <pointsMaterial color="#73eaff" size={0.1} transparent opacity={0.18} sizeAttenuation toneMapped={false} />
+    </points>
   );
 }
 
 function Infrastructure({ selectedId, reducedMotion }: { selectedId: LandmarkId; reducedMotion: boolean }) {
   const active = getLandmark(selectedId);
-  const core = getLandmark('engineering-core');
-  const routeIds: LandmarkId[] = ['cassems', 'pluxxe', 'visavale', 'squad-app', 'educarmais', 'ai-rd'];
+  const activeRoute = campusRoutes.find((route) => route.id === active.id);
   return (
     <group>
       {campusPaths.map((path) => <Road key={path.id} position={[...path.position]} size={[...path.size]} color="#1d4052" />)}
-      {routeIds.map((id) => {
-        const landmark = getLandmark(id);
-        const routeX = id === 'cassems' || id === 'ai-rd' ? -8 : id === 'pluxxe' ? 8 : landmark.entryPoint.x;
-        const points: [number, number, number][] = [
-          [core.entryPoint.x, 0.13, core.entryPoint.z],
-          [0, 0.13, 8],
-          [routeX, 0.13, 8],
-          [routeX, 0.13, landmark.entryPoint.z],
-          [landmark.entryPoint.x, 0.13, landmark.entryPoint.z],
-        ];
-        return <Line key={id} points={points} color={landmark.color} lineWidth={active.id === id ? 3 : 1.2} dashed={id === 'pluxxe'} dashSize={0.6} gapSize={0.35} transparent opacity={0.75} />;
-      })}
-      {!reducedMotion && <DataPackets />}
+      {campusRoutes.map(({ id, landmark, points }) => (
+        <Line key={id} points={points} color={landmark.color} lineWidth={active.id === id ? 3 : 1} dashed={id === 'pluxxe'} dashSize={0.6} gapSize={0.35} transparent opacity={active.id === id ? 0.88 : 0.15} />
+      ))}
+      {!reducedMotion && activeRoute && <DataPackets key={activeRoute.id} points={activeRoute.points} color={active.color} />}
     </group>
   );
 }
@@ -173,30 +190,56 @@ function Road({ position, size, color }: { position: [number, number, number]; s
   return <mesh position={position}><boxGeometry args={size} /><meshStandardMaterial color={color} roughness={0.82} metalness={0.12} /></mesh>;
 }
 
-function DataPackets() {
+function DataPackets({ points, color }: { points: [number, number, number][]; color: string }) {
   const packetsRef = useRef<THREE.Group>(null);
+  const curveRef = useRef<THREE.CatmullRomCurve3 | null>(null);
+  if (!curveRef.current) curveRef.current = new THREE.CatmullRomCurve3(points.map((point) => new THREE.Vector3(...point)), false, 'centripetal');
   useFrame(({ clock }) => {
     if (!packetsRef.current) return;
     packetsRef.current.children.forEach((packet, index) => {
-      const phase = (clock.elapsedTime * (0.12 + index * 0.012) + index * 0.17) % 1;
-      const angle = (index / packetsRef.current!.children.length) * Math.PI * 2;
-      packet.position.set(Math.cos(angle) * phase * 20, 0.22, -2 + Math.sin(angle) * phase * 17);
+      const phase = (clock.elapsedTime * 0.075 + index / packetsRef.current!.children.length) % 1;
+      packet.position.copy(curveRef.current!.getPointAt(phase));
+      packet.position.y = 0.22;
     });
   });
   return (
     <group ref={packetsRef}>
-      {Array.from({ length: 16 }, (_, index) => <mesh key={index}><boxGeometry args={[0.12, 0.12, 0.12]} /><meshBasicMaterial color={index % 2 ? '#22d3ee' : '#d946ef'} toneMapped={false} /></mesh>)}
+      {Array.from({ length: 6 }, (_, index) => <mesh key={index}><boxGeometry args={[0.11, 0.11, 0.11]} /><meshBasicMaterial color={color} toneMapped={false} /></mesh>)}
     </group>
   );
 }
 
-function Landmark({ landmark, selected, interactive, onSelect, reducedMotion }: { landmark: WorldLandmark; selected: boolean; interactive: boolean; onSelect: (id: LandmarkId) => void; reducedMotion: boolean }) {
-  if (landmark.id === 'cassems') return <CassemsDistrict landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
-  if (landmark.id === 'engineering-core') return <EngineeringCore landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} reducedMotion={reducedMotion} />;
-  if (landmark.id === 'ai-rd') return <AiResearchZone landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
-  if (landmark.id === 'pluxxe') return <FiscalHub landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
-  if (landmark.id === 'visavale') return <TrustGateway landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
-  return <CareerTower landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
+function Landmark({ landmark, selected, mode, mobile, interactive, onSelect, reducedMotion }: { landmark: WorldLandmark; selected: boolean; mode: CameraMode; mobile: boolean; interactive: boolean; onSelect: (id: LandmarkId) => void; reducedMotion: boolean }) {
+  let structure: ReactNode;
+  if (landmark.id === 'cassems') structure = <CassemsDistrict landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
+  else if (landmark.id === 'engineering-core') structure = <EngineeringCore landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} reducedMotion={reducedMotion} />;
+  else if (landmark.id === 'ai-rd') structure = <AiResearchZone landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
+  else if (landmark.id === 'pluxxe') structure = <FiscalHub landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
+  else if (landmark.id === 'visavale') structure = <TrustGateway landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
+  else structure = <CareerTower landmark={landmark} selected={selected} interactive={interactive} onSelect={onSelect} />;
+  return <>{structure}<LandmarkSign landmark={landmark} selected={selected} mode={mode} mobile={mobile} /></>;
+}
+
+function LandmarkSign({ landmark, selected, mode, mobile }: { landmark: WorldLandmark; selected: boolean; mode: CameraMode; mobile: boolean }) {
+  const presentation = getSignPresentation(mode, selected, mobile);
+  if (!presentation.visible) return null;
+  return (
+    <group position={landmark.position}>
+      <NeonSign
+        text={presentation.shortLabel ? landmark.shortLabel : landmark.label}
+        sub={presentation.period ? periodOf(landmark) : undefined}
+        color={landmark.color}
+        position={[...landmark.signage.position]}
+        rotationY={landmark.signage.rotationY}
+        fontSize={landmark.signage.fontSize}
+        panelWidth={landmark.signage.panelWidth}
+        panel={presentation.panel}
+        selected={selected}
+        connectorLength={presentation.connector ? landmark.signage.connectorLength : 0}
+        compact={presentation.shortLabel}
+      />
+    </group>
+  );
 }
 
 function InteractiveGroup({ landmark, interactive, children, onSelect }: { landmark: WorldLandmark; interactive: boolean; children: ReactNode; onSelect: (id: LandmarkId) => void }) {
@@ -212,16 +255,10 @@ function InteractiveGroup({ landmark, interactive, children, onSelect }: { landm
 
 function CareerTower({ landmark, selected, interactive, onSelect }: { landmark: WorldLandmark; selected: boolean; interactive: boolean; onSelect: (id: LandmarkId) => void }) {
   const [width, height, depth] = landmark.size;
-  const entry = landmark.entryPoint;
-  const alongZ = Math.abs(entry.z - landmark.position[2]) >= Math.abs(entry.x - landmark.position[0]);
-  const fromPositiveSide = alongZ ? entry.z >= landmark.position[2] : entry.x >= landmark.position[0];
-  const rotationY = alongZ ? (fromPositiveSide ? 0 : Math.PI) : (fromPositiveSide ? Math.PI / 2 : -Math.PI / 2);
-  const signY = height / 2 + Math.max(0.4, height * 0.12);
   return (
     <InteractiveGroup landmark={landmark} interactive={interactive} onSelect={onSelect}>
       <mesh geometry={boxGeometry} scale={[width, height, depth]}><meshStandardMaterial color={selected ? landmark.color : '#101a2d'} roughness={0.5} metalness={0.45} /><Edges color={landmark.color} scale={selected ? 1.025 : 1.005} /></mesh>
       <WindowBands width={width} height={height} depth={depth} color={landmark.color} />
-      <NeonSign text={landmark.label} sub={periodOf(landmark)} color={landmark.color} position={[0, signY, 0]} rotationY={rotationY} fontSize={0.9} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={Math.max(width, depth) * 0.72} y={-height / 2 + 0.08} />
     </InteractiveGroup>
   );
@@ -233,9 +270,8 @@ function CassemsDistrict({ landmark, selected, interactive, onSelect }: { landma
       <mesh geometry={boxGeometry} scale={[7, 2.2, 6]}><meshStandardMaterial color="#0b2925" roughness={0.58} metalness={0.32} /><Edges color={landmark.color} scale={1.01} /></mesh>
       <group position={[0, 1.1, 0]}>
         {[-2.2, 0, 2.2].map((x, index) => <mesh key={x} position={[x, index === 1 ? 1.1 : 0, 0]}><cylinderGeometry args={[0.72, 0.92, index === 1 ? 4.6 : 2.6, 8]} /><meshStandardMaterial color={selected ? '#00e89d' : '#11382f'} metalness={0.5} roughness={0.4} /><Edges color="#00e89d" /></mesh>)}
-        <Line points={[[-3, -0.8, 2.5], [-1, -0.8, 2.5], [0, -0.8, 1], [1, -0.8, 2.5], [3, -0.8, 2.5]]} color="#a2ffe1" lineWidth={2} />
+        <Line points={cassemsPulsePoints} color="#a2ffe1" lineWidth={2} />
       </group>
-      <NeonSign text={landmark.label} sub={periodOf(landmark)} color={landmark.color} position={[0, 5.1, 0]} fontSize={0.9} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={5.1} y={-1.02} />
     </InteractiveGroup>
   );
@@ -246,8 +282,7 @@ function FiscalHub({ landmark, selected, interactive, onSelect }: { landmark: Wo
     <InteractiveGroup landmark={landmark} interactive={interactive} onSelect={onSelect}>
       <mesh geometry={boxGeometry} scale={landmark.size}><meshStandardMaterial color={selected ? '#006ca8' : '#10243a'} metalness={0.48} roughness={0.48} /><Edges color="#00a8ff" /></mesh>
       <group position={[0, 4.8, 0]}>{[-1.6, -0.53, 0.53, 1.6].map((x) => <mesh key={x} position={[x, 0, 0]}><boxGeometry args={[0.58, 0.58, 0.58]} /><meshBasicMaterial color="#76d4ff" toneMapped={false} /></mesh>)}</group>
-      <Line points={[[-2, 4.1, 0], [2, 4.1, 0]]} color="#00a8ff" dashed dashSize={0.25} gapSize={0.18} lineWidth={2} />
-      <NeonSign text={landmark.label} sub={periodOf(landmark)} color={landmark.color} position={[0, 4.15, 0]} fontSize={0.85} />
+      <Line points={fiscalHubSignalPoints} color="#00a8ff" dashed dashSize={0.25} gapSize={0.18} lineWidth={2} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={3.8} y={-3.72} />
     </InteractiveGroup>
   );
@@ -259,7 +294,6 @@ function TrustGateway({ landmark, selected, interactive, onSelect }: { landmark:
       <mesh geometry={boxGeometry} scale={landmark.size}><meshStandardMaterial color={selected ? '#4b3eb3' : '#171a35'} roughness={0.48} metalness={0.42} /><Edges color={landmark.color} /></mesh>
       <mesh rotation-x={-Math.PI / 2}><torusGeometry args={[3.5, 0.09, 8, 48]} /><meshBasicMaterial color="#7c6cff" toneMapped={false} /></mesh>
       <mesh position={[0, 3.3, 0]}><octahedronGeometry args={[0.7, 0]} /><meshBasicMaterial color="#c9c2ff" wireframe toneMapped={false} /></mesh>
-      <NeonSign text={landmark.label} sub={periodOf(landmark)} color={landmark.color} position={[0, 4.6, 0]} rotationY={-Math.PI / 2} fontSize={0.8} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={3.8} y={-2.42} />
     </InteractiveGroup>
   );
@@ -275,7 +309,6 @@ function EngineeringCore({ landmark, selected, interactive, onSelect, reducedMot
         <mesh position-y={1.8}><icosahedronGeometry args={[1.05, 1]} /><meshBasicMaterial color="#d946ef" wireframe toneMapped={false} /></mesh>
         {[0, 1, 2, 3].map((index) => <mesh key={index} rotation-y={(Math.PI / 2) * index} position={[Math.cos((Math.PI / 2) * index) * 2.8, 0.4, Math.sin((Math.PI / 2) * index) * 2.8]}><boxGeometry args={[0.45, 1.5, 0.45]} /><meshBasicMaterial color={index % 2 ? '#22d3ee' : '#d946ef'} toneMapped={false} /></mesh>)}
       </group>
-      <NeonSign text={landmark.label} color={landmark.color} position={[0, 3.5, 0]} fontSize={0.85} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={3.6} y={-1.42} />
     </InteractiveGroup>
   );
@@ -287,7 +320,6 @@ function AiResearchZone({ landmark, selected, interactive, onSelect }: { landmar
       <mesh geometry={boxGeometry} scale={landmark.size}><meshStandardMaterial color="#140b1c" transparent opacity={0.72} roughness={0.65} /><Edges color="#ff3d9a" /></mesh>
       {[-2.2, 0, 2.2].map((x, index) => <mesh key={x} position={[x, 2.2 + index * 0.4, 0]}><boxGeometry args={[1.25, 2.5 + index, 1.25]} /><meshBasicMaterial color="#ff3d9a" wireframe transparent opacity={selected ? 0.9 : 0.42} toneMapped={false} /></mesh>)}
       <mesh position={[0, 4.7, 0]} rotation-x={Math.PI / 2}><torusGeometry args={[2.5, 0.05, 6, 48]} /><meshBasicMaterial color="#ff3d9a" toneMapped={false} /></mesh>
-      <NeonSign text={landmark.label} color={landmark.color} position={[0, 6.0, 0]} rotationY={Math.PI / 2} fontSize={0.85} />
       <SelectionBeacon selected={selected} color={landmark.color} radius={4.8} y={-1.02} />
     </InteractiveGroup>
   );
@@ -309,6 +341,7 @@ function AvatarController({
   fastTravelRequest,
   onInspect,
   onDismissDossier,
+  dossierVisible,
   controlElementRef,
   joystickVectorRef,
   inspectSequenceRef,
@@ -318,6 +351,7 @@ function AvatarController({
   fastTravelRequest: FastTravelRequest | null;
   onInspect: (id: LandmarkId) => void;
   onDismissDossier: () => void;
+  dossierVisible: boolean;
   controlElementRef: RefObject<HTMLDivElement | null>;
   joystickVectorRef: RefObject<Position2D>;
   inspectSequenceRef: RefObject<number>;
@@ -327,10 +361,13 @@ function AvatarController({
   const handledTravelSequenceRef = useRef(0);
   const handledInspectSequenceRef = useRef(0);
   const dismissedLandmarkRef = useRef<LandmarkId | null>(null);
+  const canDismissSelectionRef = useRef(false);
 
   useEffect(() => {
+    if (!dossierVisible) return;
     dismissedLandmarkRef.current = null;
-  }, [selectedId]);
+    canDismissSelectionRef.current = false;
+  }, [dossierVisible, selectedId]);
 
   useEffect(() => {
     const keyMap: Record<string, keyof MovementKeys | undefined> = { w: 'forward', arrowup: 'forward', s: 'backward', arrowdown: 'backward', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
@@ -408,7 +445,9 @@ function AvatarController({
     }
     const landmark = getLandmark(selectedId);
     const distance = Math.hypot(avatarPositionRef.current.x - landmark.position[0], avatarPositionRef.current.z - landmark.position[2]);
-    if (distance > dossierDismissDistance && dismissedLandmarkRef.current !== selectedId) {
+    const dismissal = getDossierDismissalState(distance, canDismissSelectionRef.current);
+    canDismissSelectionRef.current = dismissal.armed;
+    if (dismissal.shouldDismiss && dismissedLandmarkRef.current !== selectedId) {
       dismissedLandmarkRef.current = selectedId;
       onDismissDossier();
     }
@@ -417,7 +456,7 @@ function AvatarController({
   return <group ref={avatarRef} position={[avatarPositionRef.current.x, 0.78, avatarPositionRef.current.z]}><mesh position-y={0.12}><boxGeometry args={[0.65, 0.9, 0.65]} /><meshStandardMaterial color="#d8f7ff" /><Edges color="#22d3ee" /></mesh><mesh position-y={0.86}><boxGeometry args={[0.52, 0.52, 0.52]} /><meshStandardMaterial color="#111a2d" /><Edges color="#d946ef" /></mesh><pointLight position={[0, 1.1, 0]} color="#22d3ee" intensity={6} distance={3} /></group>;
 }
 
-function CameraDirector({ selectedId, mode, avatarPositionRef, reducedMotion }: { selectedId: LandmarkId; mode: 'menu' | 'tour' | 'explore'; avatarPositionRef: RefObject<Position2D>; reducedMotion: boolean }) {
+function CameraDirector({ selectedId, mode, dossierVisible, avatarPositionRef, reducedMotion }: { selectedId: LandmarkId; mode: CameraMode; dossierVisible: boolean; avatarPositionRef: RefObject<Position2D>; reducedMotion: boolean }) {
   const { camera, size } = useThree();
   const currentTarget = useRef(new THREE.Vector3(0, 0.6, 1));
   const desiredTarget = useRef(new THREE.Vector3(0, 0.6, 1));
@@ -430,7 +469,8 @@ function CameraDirector({ selectedId, mode, avatarPositionRef, reducedMotion }: 
 
   useFrame((_, delta) => {
     const target = getCameraTarget(mode, selectedId, avatarPositionRef.current);
-    desiredTarget.current.set(target.x, target.y, target.z);
+    const frameOffset = getCameraFrameOffset(mode, dossierVisible, size.width);
+    desiredTarget.current.set(target.x + frameOffset.x, target.y, target.z + frameOffset.z);
     if (mode === 'menu') {
       desired.current.copy(overview.current);
     } else {

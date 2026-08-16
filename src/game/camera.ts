@@ -17,7 +17,17 @@ export function getCameraZoom(mode: CameraMode, viewportWidth: number, viewportH
   if (mode === 'menu') {
     return clamp(3.5, 16, Math.min(viewportWidth / 98, viewportHeight / 68));
   }
-  return clamp(10, 25, Math.min(viewportWidth / 30, viewportHeight / 34));
+  const baseZoom = Math.min(viewportWidth / 30, viewportHeight / 34);
+  return clamp(10, 25, viewportWidth <= 700 ? baseZoom * 1.15 : baseZoom);
+}
+
+export function getCameraFrameOffset(
+  mode: CameraMode,
+  dossierVisible: boolean,
+  viewportWidth: number,
+): Position2D {
+  if (mode !== 'explore' || !dossierVisible || viewportWidth <= 950) return { x: 0, z: 0 };
+  return { x: 3.2, z: -3.2 };
 }
 
 export function getCameraTarget(

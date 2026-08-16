@@ -1503,7 +1503,7 @@ button {
 .canvas-help {
   position: absolute;
   z-index: 5;
-  bottom: 0.65rem;
+  bottom: 3rem;
   left: 0.8rem;
   display: flex;
   gap: 0.8rem;

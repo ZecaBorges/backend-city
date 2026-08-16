@@ -4,11 +4,12 @@ import CityExperience from '../src/components/city/CityExperience';
 import { experiences } from '../src/data/resume';
 
 vi.mock('../src/components/city/CityCanvas', () => ({
-  default: ({ mode, fastTravelRequest, onSelect, onInspect }: { mode: string; fastTravelRequest: unknown; onSelect: (id: string) => void; onInspect: (id: string) => void }) => (
+  default: ({ mode, fastTravelRequest, onSelect, onInspect, onDismissDossier }: { mode: string; fastTravelRequest: unknown; onSelect: (id: string) => void; onInspect: (id: string) => void; onDismissDossier: () => void }) => (
     <div data-testid="city-canvas" data-travel={fastTravelRequest ? 'yes' : 'no'}>
       Canvas {mode}
       <button type="button" onClick={() => onInspect?.('pluxxe')}>INSPECT-INTERNAL</button>
       <button type="button" onClick={() => onSelect?.('pluxxe')}>SELECT-INTERNAL</button>
+      <button type="button" onClick={onDismissDossier}>DISMISS-INTERNAL</button>
     </div>
   ),
 }));
@@ -163,6 +164,24 @@ describe('CityExperience', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'SELECT-INTERNAL' }));
     expect(screen.getByTestId('city-canvas')).toHaveAttribute('data-travel', 'yes');
+    contextSpy.mockRestore();
+  });
+
+  it('reopens and dismisses the same landmark dossier repeatedly', () => {
+    const contextSpy = mockWebGL(true);
+    render(<CityExperience experiences={experiences} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Explorar livremente' }));
+    fireEvent.click(screen.getByRole('button', { name: 'INSPECT-INTERNAL' }));
+    expect(screen.getByRole('heading', { name: 'PLUXXE' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'DISMISS-INTERNAL' }));
+    expect(screen.queryByRole('heading', { name: 'PLUXXE' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'INSPECT-INTERNAL' }));
+    expect(screen.getByRole('heading', { name: 'PLUXXE' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'DISMISS-INTERNAL' }));
+    expect(screen.queryByRole('heading', { name: 'PLUXXE' })).not.toBeInTheDocument();
     contextSpy.mockRestore();
   });
 

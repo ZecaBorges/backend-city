@@ -3,6 +3,15 @@ import type { Aabb2D, Position2D } from './movement';
 
 export type LandmarkId = ExperienceId | 'engineering-core' | 'ai-rd';
 export type LandmarkKind = 'career' | 'platform' | 'future';
+export type VegetationVariant = 'small-wide' | 'medium' | 'tall-narrow';
+
+export interface LandmarkSignage {
+  position: readonly [number, number, number];
+  rotationY: number;
+  fontSize: number;
+  panelWidth: number;
+  connectorLength: number;
+}
 
 export interface WorldLandmark {
   id: LandmarkId;
@@ -17,6 +26,7 @@ export interface WorldLandmark {
   size: readonly [number, number, number];
   collisionSize?: readonly [number, number, number];
   cameraTarget: readonly [number, number, number];
+  signage: LandmarkSignage;
   entryPoint: Position2D;
   summary: string;
   signals: readonly string[];
@@ -29,6 +39,7 @@ export interface CampusProp {
   kind: CampusPropKind;
   position: readonly [number, number, number];
   rotationY?: number;
+  variant?: VegetationVariant;
   collisionSize: readonly [number, number];
 }
 
@@ -54,6 +65,11 @@ export const avatarSpawn: Position2D = { x: 0, z: 17 };
 export const avatarCollisionRadius = 0.48;
 export const dossierDismissDistance = 16;
 
+export function getDossierDismissalState(distance: number, armed: boolean): { armed: boolean; shouldDismiss: boolean } {
+  const nextArmed = armed || distance <= dossierDismissDistance;
+  return { armed: nextArmed, shouldDismiss: nextArmed && distance > dossierDismissDistance };
+}
+
 export const worldLandmarks: WorldLandmark[] = [
   {
     id: 'cassems',
@@ -66,7 +82,8 @@ export const worldLandmarks: WorldLandmark[] = [
     color: '#00e89d',
     position: [-14, 1.1, -10],
     size: [7, 6.6, 6],
-    cameraTarget: [-14, 1.2, -10],
+    cameraTarget: [-14, 3.8, -10],
+    signage: { position: [0, 5.8, 0], rotationY: Math.PI / 4, fontSize: 0.78, panelWidth: 5.6, connectorLength: 0.6 },
     entryPoint: { x: -14, z: -6 },
     summary: 'Performance batch e integrações de saúde em escala operacional.',
     signals: ['5h → 12min', '15K+ / mês', '200K+ beneficiários'],
@@ -82,7 +99,8 @@ export const worldLandmarks: WorldLandmark[] = [
     color: '#00a8ff',
     position: [14, 3.8, -12],
     size: [5, 7.6, 5],
-    cameraTarget: [14, 1.2, -11],
+    cameraTarget: [14, 7.4, -11],
+    signage: { position: [0, 5.9, 0], rotationY: Math.PI / 4, fontSize: 0.76, panelWidth: 5.2, connectorLength: 0.2 },
     entryPoint: { x: 15, z: -8.8 },
     summary: 'Plataforma fiscal orientada a eventos e conectada por Kafka.',
     signals: ['Kafka', 'DIRF · DCTF', 'Zero downtime'],
@@ -99,7 +117,8 @@ export const worldLandmarks: WorldLandmark[] = [
     position: [21, 2.5, 4],
     size: [5, 5, 5],
     collisionSize: [7.2, 5, 7.2],
-    cameraTarget: [21, 1, 4],
+    cameraTarget: [21, 5.4, 4],
+    signage: { position: [0, 5.2, 0], rotationY: Math.PI / 4, fontSize: 0.72, panelWidth: 5.8, connectorLength: 0.5 },
     entryPoint: { x: 16, z: 4 },
     summary: 'APIs financeiras protegidas por limites explícitos de confiança.',
     signals: ['JWT / OAuth2', 'Hexagonal', 'Critical tests'],
@@ -115,7 +134,8 @@ export const worldLandmarks: WorldLandmark[] = [
     color: '#ff8a3d',
     position: [-21, 2.7, 13],
     size: [5.5, 5.4, 5],
-    cameraTarget: [-21, 1, 13],
+    cameraTarget: [-21, 4.8, 13],
+    signage: { position: [0, 4, 0], rotationY: Math.PI / 4, fontSize: 0.72, panelWidth: 6.2, connectorLength: 0.6 },
     entryPoint: { x: -17.3, z: 13 },
     summary: 'Integrações internacionais de pagamento e entrega containerizada.',
     signals: ['Florida, USA', 'Payments', 'Docker'],
@@ -131,7 +151,8 @@ export const worldLandmarks: WorldLandmark[] = [
     color: '#ffcc4d',
     position: [15, 1.8, 19],
     size: [6, 3.6, 4.5],
-    cameraTarget: [15, 0.8, 19],
+    cameraTarget: [15, 3.4, 19],
+    signage: { position: [0, 3, 0], rotationY: Math.PI / 4, fontSize: 0.7, panelWidth: 5.6, connectorLength: 0.5 },
     entryPoint: { x: 15, z: 15.5 },
     summary: 'Onde necessidades de negócio se transformaram em APIs e automações.',
     signals: ['PHP', 'Python', 'Business → API'],
@@ -147,7 +168,8 @@ export const worldLandmarks: WorldLandmark[] = [
     position: [0, 1.5, -2],
     size: [4.5, 3, 4.5],
     collisionSize: [6.5, 3, 6.5],
-    cameraTarget: [0, 1, -2],
+    cameraTarget: [0, 3.8, -2],
+    signage: { position: [0, 4.1, 0], rotationY: Math.PI / 4, fontSize: 0.68, panelWidth: 8.4, connectorLength: 0.55 },
     entryPoint: { x: 0, z: 2.3 },
     summary: 'A base compartilhada que conecta arquitetura, dados, entrega e qualidade.',
     signals: ['Java · Kotlin', 'DDD · Hexagonal', 'Kafka · Oracle'],
@@ -162,7 +184,8 @@ export const worldLandmarks: WorldLandmark[] = [
     color: '#ff3d9a',
     position: [-24, 1.1, -20],
     size: [7, 2.2, 5.5],
-    cameraTarget: [-24, 0.8, -20],
+    cameraTarget: [-24, 4.7, -20],
+    signage: { position: [0, 6.5, 0], rotationY: Math.PI / 4, fontSize: 0.72, panelWidth: 6.8, connectorLength: 0.55 },
     entryPoint: { x: -19.5, z: -20 },
     summary: 'Blueprint reservado para cases verificáveis de IA, avaliação e observabilidade.',
     signals: ['STATUS: BLUEPRINT', 'RAG · Agents', 'Evaluation first'],
@@ -182,22 +205,21 @@ export const campusProps: CampusProp[] = [
   { id: 'bench-ai', kind: 'bench', position: [-14, 0.5, -17.4], collisionSize: [2.8, 0.9] },
   { id: 'bench-pluxxe', kind: 'bench', position: [12, 0.5, -6.3], collisionSize: [2.8, 0.9] },
   { id: 'bench-visavale', kind: 'bench', position: [18, 0.5, 10], collisionSize: [2.8, 0.9] },
-  { id: 'tree-ai-west', kind: 'tree', position: [-10.5, 1.45, -18], collisionSize: [0.8, 0.8] },
-  { id: 'tree-ai-east', kind: 'tree', position: [-5.5, 1.45, -14], collisionSize: [0.8, 0.8] },
-  { id: 'tree-health', kind: 'tree', position: [-12.5, 1.45, -4], collisionSize: [0.8, 0.8] },
-  { id: 'tree-core-east', kind: 'tree', position: [5.5, 1.45, -2.5], collisionSize: [0.8, 0.8] },
-  { id: 'tree-events', kind: 'tree', position: [10.5, 1.45, -4], collisionSize: [0.8, 0.8] },
-  { id: 'tree-trust-south', kind: 'tree', position: [18.5, 1.45, -5], collisionSize: [0.8, 0.8] },
-  { id: 'tree-global-east', kind: 'tree', position: [-13, 1.45, 5.5], collisionSize: [0.8, 0.8] },
-  { id: 'tree-main-east', kind: 'tree', position: [11.5, 1.45, 3.5], collisionSize: [0.8, 0.8] },
-  { id: 'tree-main-west', kind: 'tree', position: [-7, 1.45, 12], collisionSize: [0.8, 0.8] },
-  { id: 'tree-trust-north', kind: 'tree', position: [18.5, 1.45, 11], collisionSize: [0.8, 0.8] },
-  { id: 'tree-global-north', kind: 'tree', position: [-22, 1.45, 19], collisionSize: [0.8, 0.8] },
-  { id: 'tree-foundation-east', kind: 'tree', position: [23, 1.45, 20], collisionSize: [0.8, 0.8] },
-  { id: 'tree-ai-north', kind: 'tree', position: [-28.5, 1.45, -15], collisionSize: [0.8, 0.8] },
-  { id: 'tree-ai-path', kind: 'tree', position: [-17, 1.45, -16.5], collisionSize: [0.8, 0.8] },
-  { id: 'tree-pluxxe-north', kind: 'tree', position: [19, 1.45, -14], collisionSize: [0.8, 0.8] },
-  { id: 'tree-trust-east', kind: 'tree', position: [26.5, 1.45, 6], collisionSize: [0.8, 0.8] },
+  { id: 'tree-ai-west', kind: 'tree', position: [-28.5, 0, -15], rotationY: 0.4, variant: 'tall-narrow', collisionSize: [0.8, 0.8] },
+  { id: 'tree-ai-east', kind: 'tree', position: [-25.8, 0, -14.2], rotationY: 1.2, variant: 'medium', collisionSize: [0.9, 0.9] },
+  { id: 'tree-ai-garden', kind: 'tree', position: [-13, 0, -15], rotationY: 0.8, variant: 'small-wide', collisionSize: [1.1, 1.1] },
+  { id: 'tree-health', kind: 'tree', position: [-11.8, 0, -3.6], rotationY: 0.2, variant: 'small-wide', collisionSize: [1.1, 1.1] },
+  { id: 'tree-health-garden', kind: 'tree', position: [-6, 0, -13.5], rotationY: 1.5, variant: 'medium', collisionSize: [0.9, 0.9] },
+  { id: 'tree-core-east', kind: 'tree', position: [5.3, 0, -2.8], rotationY: 0.7, variant: 'small-wide', collisionSize: [1.1, 1.1] },
+  { id: 'tree-events', kind: 'tree', position: [10.8, 0, -4], rotationY: 1.1, variant: 'medium', collisionSize: [0.9, 0.9] },
+  { id: 'tree-pluxxe-north', kind: 'tree', position: [19, 0, -14], rotationY: 0.3, variant: 'tall-narrow', collisionSize: [0.8, 0.8] },
+  { id: 'tree-global-east', kind: 'tree', position: [-13, 0, 5.5], rotationY: 1.4, variant: 'small-wide', collisionSize: [1.1, 1.1] },
+  { id: 'tree-main-west', kind: 'tree', position: [-7, 0, 12], rotationY: 0.5, variant: 'medium', collisionSize: [0.9, 0.9] },
+  { id: 'tree-global-north', kind: 'tree', position: [-22, 0, 19], rotationY: 1.3, variant: 'tall-narrow', collisionSize: [0.8, 0.8] },
+  { id: 'tree-trust-north', kind: 'tree', position: [18.5, 0, 11], rotationY: 0.9, variant: 'small-wide', collisionSize: [1.1, 1.1] },
+  { id: 'tree-trust-east', kind: 'tree', position: [26.5, 0, 6], rotationY: 0.2, variant: 'tall-narrow', collisionSize: [0.8, 0.8] },
+  { id: 'tree-foundation-east', kind: 'tree', position: [23, 0, 20], rotationY: 1.6, variant: 'medium', collisionSize: [0.9, 0.9] },
+  { id: 'tree-foundation-garden', kind: 'tree', position: [26.5, 0, 21], rotationY: 0.6, variant: 'small-wide', collisionSize: [1.1, 1.1] },
 ];
 
 export const campusPaths: CampusPath[] = [

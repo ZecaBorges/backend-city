@@ -1,11 +1,40 @@
 import { Edges } from '@react-three/drei';
-import { campusProps } from '../../game/world';
+import * as THREE from 'three';
+import { deterministicUnit } from '../../game/random';
+import { campusProps, type VegetationVariant } from '../../game/world';
+
+const treeTrunkGeometry = new THREE.CylinderGeometry(0.72, 1, 1, 6);
+const treeCanopyGeometry = new THREE.ConeGeometry(1, 1, 7);
+
+const treeVariants: Record<VegetationVariant, {
+  trunk: { y: number; radius: number; height: number };
+  canopies: { y: number; radius: number; height: number; color: string }[];
+}> = {
+  'small-wide': {
+    trunk: { y: 0.48, radius: 0.22, height: 0.96 },
+    canopies: [{ y: 1.28, radius: 1.2, height: 1.45, color: '#123f37' }],
+  },
+  medium: {
+    trunk: { y: 0.62, radius: 0.24, height: 1.24 },
+    canopies: [
+      { y: 1.48, radius: 0.98, height: 1.55, color: '#103d34' },
+      { y: 2.12, radius: 0.68, height: 1.22, color: '#155346' },
+    ],
+  },
+  'tall-narrow': {
+    trunk: { y: 0.7, radius: 0.2, height: 1.4 },
+    canopies: [
+      { y: 1.7, radius: 0.76, height: 1.75, color: '#0d392f' },
+      { y: 2.5, radius: 0.54, height: 1.35, color: '#134b3e' },
+    ],
+  },
+};
 
 export default function CampusProps() {
   return (
     <group>
       {campusProps.map((prop) => {
-        if (prop.kind === 'tree') return <CampusTree key={prop.id} position={prop.position} />;
+        if (prop.kind === 'tree') return <CampusTree key={prop.id} id={prop.id} position={prop.position} rotationY={prop.rotationY} variant={prop.variant ?? 'medium'} />;
         if (prop.kind === 'bench') return <CampusBench key={prop.id} position={prop.position} rotationY={prop.rotationY} />;
         return <CampusFountain key={prop.id} position={prop.position} />;
       })}
@@ -13,24 +42,19 @@ export default function CampusProps() {
   );
 }
 
-function CampusTree({ position }: { position: readonly [number, number, number] }) {
+function CampusTree({ id, position, rotationY, variant }: { id: string; position: readonly [number, number, number]; rotationY?: number; variant: VegetationVariant }) {
+  const tree = treeVariants[variant];
   return (
-    <group position={position}>
-      <mesh position-y={-0.45}>
-        <cylinderGeometry args={[0.28, 0.38, 2, 6]} />
-        <meshStandardMaterial color="#59452f" roughness={0.92} />
-        <Edges color="#b38a55" />
+    <group position={position} rotation-y={rotationY ?? deterministicUnit(id, 0x7ee) * Math.PI * 2}>
+      <mesh geometry={treeTrunkGeometry} position-y={tree.trunk.y} scale={[tree.trunk.radius, tree.trunk.height, tree.trunk.radius]}>
+        <meshStandardMaterial color="#40362b" roughness={0.94} />
       </mesh>
-      <mesh position-y={0.75}>
-        <coneGeometry args={[1.25, 2.5, 7]} />
-        <meshStandardMaterial color="#0b513f" roughness={0.82} flatShading />
-        <Edges color="#00b982" />
-      </mesh>
-      <mesh position-y={1.75}>
-        <coneGeometry args={[0.92, 1.9, 7]} />
-        <meshStandardMaterial color="#11705a" roughness={0.78} flatShading />
-        <Edges color="#38d9a9" />
-      </mesh>
+      {tree.canopies.map((canopy, index) => (
+        <mesh key={canopy.y} geometry={treeCanopyGeometry} position-y={canopy.y} scale={[canopy.radius, canopy.height, canopy.radius]}>
+          <meshStandardMaterial color={canopy.color} roughness={0.88} flatShading />
+          {index === tree.canopies.length - 1 && <Edges color="#267b68" scale={1.008} />}
+        </mesh>
+      ))}
     </group>
   );
 }

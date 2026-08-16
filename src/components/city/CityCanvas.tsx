@@ -14,6 +14,8 @@ interface CityCanvasProps {
   onSelect: (id: LandmarkId) => void;
   onInspect: (id: LandmarkId) => void;
   onDismissDossier: () => void;
+  dossierVisible: boolean;
+  isMobile: boolean;
   mobileControlsHidden?: boolean;
 }
 
@@ -29,7 +31,7 @@ class WebGLErrorBoundary extends Component<{ children: ReactNode }, BoundaryStat
   }
 }
 
-export default function CityCanvas({ selectedId, mode, shouldFocus, fastTravelRequest, onSelect, onInspect, onDismissDossier, mobileControlsHidden = false }: CityCanvasProps) {
+export default function CityCanvas({ selectedId, mode, shouldFocus, fastTravelRequest, onSelect, onInspect, onDismissDossier, dossierVisible, isMobile, mobileControlsHidden = false }: CityCanvasProps) {
   const shellRef = useRef<HTMLDivElement>(null);
   const joystickVectorRef = useRef<Position2D>({ x: 0, z: 0 });
   const inspectSequenceRef = useRef(0);
@@ -61,6 +63,8 @@ export default function CityCanvas({ selectedId, mode, shouldFocus, fastTravelRe
             onSelect={onSelect}
             onInspect={onInspect}
             onDismissDossier={onDismissDossier}
+            dossierVisible={dossierVisible}
+            isMobile={isMobile}
             controlElementRef={shellRef}
             joystickVectorRef={joystickVectorRef}
             inspectSequenceRef={inspectSequenceRef}
